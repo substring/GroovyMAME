@@ -138,6 +138,7 @@ protected:
 	struct vram_state_data m_vram_state[2];
 
 	void slave_map_program(address_map &map);
+	void asylum_slave_map_program(address_map &map);
 
 	TIMER_CALLBACK_MEMBER(leland_delayed_mvram_w);
 
@@ -268,6 +269,7 @@ public:
 
 	void ataxx(machine_config &config);
 	void wsf(machine_config &config);
+	void asylum(machine_config &config);
 
 private:
 	u8 ataxx_trackball_r(offs_t offset);

@@ -773,6 +773,44 @@ template <unsigned Count, bool Required> using memory_bank_array_finder = object
 template <unsigned Count> using optional_memory_bank_array = memory_bank_array_finder<Count, false>;
 template <unsigned Count> using required_memory_bank_array = memory_bank_array_finder<Count, true>;
 
+/// \brief Memory bank creator
+///
+/// Creates a memory bank or pick up an existing one.
+class memory_bank_creator : finder_base
+{
+public:
+	memory_bank_creator(device_t &base, char const *tag) : finder_base(base, tag) { }
+	virtual ~memory_bank_creator() = default;
+
+	/// \brief Get pointer to target bank object
+	/// \return Pointer to target bank object if found, or nullptr otherwise.
+	memory_bank *target() const { return m_target; }
+
+	/// \brief Cast-to-pointer operator
+	///
+	/// Allows implicit casting to a pointer to the target bank object.
+	/// \return Pointer to target bank object
+	operator memory_bank *() const { return m_target; }
+
+	/// \brief Pointer member access operator
+	///
+	/// Allows pointer-member-style access to members of the target
+	/// bank object.
+	/// \return Pointer to target bank object
+	memory_bank *operator->() const { return m_target; }
+
+protected:
+	virtual bool findit(bool isvalidation) override;
+	virtual void end_configuration() override;
+
+	/// \brief Pointer to target object
+	///
+	/// Pointer to target object, or nullptr if the creation has not been
+	/// attempted yet.
+	memory_bank *m_target = nullptr;
+};
+
+template <unsigned Count> using memory_bank_array_creator = object_array_finder<memory_bank_creator, Count>;
 
 /// \brief I/O port finder template
 ///

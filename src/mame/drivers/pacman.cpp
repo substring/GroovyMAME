@@ -1017,6 +1017,12 @@ void pacman_state::pacman_map(address_map &map)
 	map(0x50c0, 0x50c0).mirror(0xaf3f).portr("DSW2");
 }
 
+void pacman_state::cannonbp_map(address_map &map)
+{
+	pacman_map(map);
+	map(0x4800, 0x4bff).ram();
+	map(0x3000, 0x3fff).r(FUNC(pacman_state::cannonbp_protection_r));
+}
 
 void pacman_state::birdiy_map(address_map &map)
 {
@@ -3889,6 +3895,11 @@ void pacman_state::crushs(machine_config &config)
 	AY8912(config, "ay8912", 1789750).add_route(ALL_OUTPUTS, "mono", 0.75);
 }
 
+void pacman_state::cannonbp(machine_config &config)
+{
+	pacman(config);
+	m_maincpu->set_addrmap(AS_PROGRAM, &pacman_state::cannonbp_map);
+}
 
 
 /*************************************
@@ -7549,16 +7560,6 @@ READ8_MEMBER(pacman_state::cannonbp_protection_r)
 	}
 }
 
-
-void pacman_state::init_cannonbp()
-{
-	/* extra memory */
-	m_maincpu->space(AS_PROGRAM).install_ram(0x4800, 0x4bff);
-
-	/* protection? */
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x3000, 0x3fff, read8_delegate(*this, FUNC(pacman_state::cannonbp_protection_r)));
-}
-
 void pacman_state::init_pengomc1()
 {
 	uint8_t* romdata = memregion("maincpu")->base();
@@ -7725,7 +7726,7 @@ GAME( 1986, bigbucks, 0,        bigbucks, bigbucks, pacman_state,  empty_init,  
 
 GAME( 1983, numcrash, 0,        numcrash, numcrash, pacman_state,  empty_init,    ROT90,  "Hanshin Goraku / Peni", "Number Crash", MACHINE_SUPPORTS_SAVE ) // "Peni soft" related?
 
-GAME( 1985, cannonbp, 0,        pacman,   cannonbp, pacman_state,  init_cannonbp, ROT90,  "Novomatic", "Cannon Ball (Pac-Man Hardware)", MACHINE_WRONG_COLORS | MACHINE_SUPPORTS_SAVE )
+GAME( 1985, cannonbp, 0,        cannonbp, cannonbp, pacman_state,  empty_init,    ROT90,  "Novomatic", "Cannon Ball (Pac-Man Hardware)", MACHINE_WRONG_COLORS | MACHINE_SUPPORTS_SAVE )
 
 GAME( 1999, superabc, 0,        superabc, superabc, pacman_state,  init_superabc, ROT90,  "hack (Two-Bit Score)", "Super ABC (Pac-Man multigame kit, Sep. 03 1999)", MACHINE_SUPPORTS_SAVE )
 GAME( 1999, superabco,superabc, superabc, superabc, pacman_state,  init_superabc, ROT90,  "hack (Two-Bit Score)", "Super ABC (Pac-Man multigame kit, Mar. 08 1999)", MACHINE_SUPPORTS_SAVE )

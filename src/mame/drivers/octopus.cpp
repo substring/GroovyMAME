@@ -760,7 +760,7 @@ void octopus_state::machine_start()
 	m_vidctrl = 0xff;
 
 	// install RAM
-	m_maincpu->space(AS_PROGRAM).install_readwrite_bank(0x0000,m_ram->size()-1,"main_ram_bank");
+	m_maincpu->space(AS_PROGRAM).install_ram(0x0000,m_ram->size()-1,m_ram->pointer());
 	m_maincpu->space(AS_PROGRAM).nop_readwrite(m_ram->size(),0xcffff);
 }
 
@@ -773,7 +773,6 @@ void octopus_state::machine_reset()
 	m_current_drive = 0;
 	m_rtc_address = true;
 	m_rtc_data = false;
-	membank("main_ram_bank")->set_base(m_ram->pointer());
 	m_kb_uart->write_dsr(1);  // DSR is used to determine if a keyboard is connected?  If DSR is high, then the CHAR_OUT BIOS function will not output to the screen.
 }
 

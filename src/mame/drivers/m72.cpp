@@ -654,10 +654,9 @@ void m72_state::install_protection_handler(const u8 *code,const u8 *crc)
 	m_protection_ram = std::make_unique<u16[]>(0x1000/2);
 	m_protection_code = code;
 	m_protection_crc =  crc;
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xb0000, 0xb0fff, "bank1");
+	m_maincpu->space(AS_PROGRAM).install_rom(0xb0000, 0xb0fff, m_protection_ram.get());
 	m_maincpu->space(AS_PROGRAM).install_read_handler(0xb0ffa, 0xb0ffb, read16_delegate(*this, FUNC(m72_state::protection_r)));
 	m_maincpu->space(AS_PROGRAM).install_write_handler(0xb0000, 0xb0fff, write16_delegate(*this, FUNC(m72_state::protection_w)));
-	membank("bank1")->configure_entry(0, m_protection_ram.get());
 
 	save_pointer(NAME(m_protection_ram), 0x1000/2);
 }

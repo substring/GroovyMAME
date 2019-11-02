@@ -348,3 +348,24 @@ void finder_base::printf_warning(const char *format, ...)
 	osd_printf_warning("%s", buffer);
 	va_end(argptr);
 }
+
+bool memory_bank_creator::findit(bool validation)
+{
+	if (validation)
+		return true;
+
+	device_t &dev = m_base.get();
+	memory_manager &manager = dev.machine().memory();
+	std::string tag = dev.subtag(m_tag);
+	memory_bank *bank = manager.bank_find(tag);
+	if (bank)
+		m_target = bank;
+	else
+		m_target = manager.bank_alloc(dev, tag);
+	return true;
+}
+
+void memory_bank_creator::end_configuration()
+{
+	m_target = nullptr;
+}

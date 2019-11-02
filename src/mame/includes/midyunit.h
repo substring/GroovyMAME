@@ -115,6 +115,7 @@ private:
 	optional_ioport_array<6> m_ports;
 
 	std::unique_ptr<uint16_t[]> m_cmos_ram;
+	std::unique_ptr<uint8_t[]> m_hidden_ram;
 	uint32_t m_cmos_page;
 	uint16_t m_prot_result;
 	uint16_t m_prot_sequence[3];

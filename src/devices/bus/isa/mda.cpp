@@ -183,14 +183,14 @@ void isa8_mda_device::device_start()
 	set_isa_device();
 	m_videoram.resize(0x1000);
 	m_isa->install_device(0x3b0, 0x3bf, read8_delegate(*this, FUNC(isa8_mda_device::io_read)), write8_delegate(*this, FUNC(isa8_mda_device::io_write)));
-	m_isa->install_bank(0xb0000, 0xb0fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb1000, 0xb1fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb2000, 0xb2fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb3000, 0xb3fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb4000, 0xb4fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb5000, 0xb5fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb6000, 0xb6fff, "bank_mda", &m_videoram[0]);
-	m_isa->install_bank(0xb7000, 0xb7fff, "bank_mda", &m_videoram[0]);
+	m_isa->install_bank(0xb0000, 0xb0fff, &m_videoram[0]);
+	m_isa->install_bank(0xb1000, 0xb1fff, &m_videoram[0]);
+	m_isa->install_bank(0xb2000, 0xb2fff, &m_videoram[0]);
+	m_isa->install_bank(0xb3000, 0xb3fff, &m_videoram[0]);
+	m_isa->install_bank(0xb4000, 0xb4fff, &m_videoram[0]);
+	m_isa->install_bank(0xb5000, 0xb5fff, &m_videoram[0]);
+	m_isa->install_bank(0xb6000, 0xb6fff, &m_videoram[0]);
+	m_isa->install_bank(0xb7000, 0xb7fff, &m_videoram[0]);
 
 	/* Initialise the mda palette */
 	for (int i = 0; i < 4; i++)
@@ -602,7 +602,7 @@ void isa8_hercules_device::device_start()
 	m_videoram.resize(0x10000);
 	set_isa_device();
 	m_isa->install_device(0x3b0, 0x3bf, read8_delegate(*this, FUNC(isa8_hercules_device::io_read)), write8_delegate(*this, FUNC(isa8_hercules_device::io_write)));
-	m_isa->install_bank(0xb0000, 0xbffff, "bank_hercules", &m_videoram[0]);
+	m_isa->install_bank(0xb0000, 0xbffff, &m_videoram[0]);
 
 	/* Initialise the mda palette */
 	for(int i = 0; i < (sizeof(mda_palette) / 3); i++)
@@ -795,8 +795,8 @@ void isa8_ec1840_0002_device::device_start()
 	isa8_mda_device::device_start();
 
 	m_soft_chr_gen = std::make_unique<uint8_t[]>(0x2000);
-	m_isa->install_bank(0xdc000, 0xddfff, "bank_chargen", m_soft_chr_gen.get());
-	m_isa->install_bank(0xde000, 0xdffff, "bank_chargen", m_soft_chr_gen.get());
+	m_isa->install_bank(0xdc000, 0xddfff, m_soft_chr_gen.get());
+	m_isa->install_bank(0xde000, 0xdffff, m_soft_chr_gen.get());
 }
 
 void isa8_ec1840_0002_device::device_reset()
@@ -1176,13 +1176,13 @@ void isa8_epc_mda_device::device_reset()
 	if (m_installed == false)
 	{
 		m_isa->install_device(0x3b0, 0x3bf, read8_delegate(*this, FUNC(isa8_epc_mda_device::io_read)), write8_delegate(*this, FUNC(isa8_epc_mda_device::io_write)));
-		m_isa->install_bank(0xb0000, 0xb7fff, "bank_epc", &m_videoram[0]); // Monochrome emulation mode VRAM address
+		m_isa->install_bank(0xb0000, 0xb7fff, &m_videoram[0]); // Monochrome emulation mode VRAM address
 
 		// This check allows a color monitor adapter to be installed at this address range if color emulation is disabled
 		if (m_color_mode & 1)
 		{
 			m_isa->install_device(0x3d0, 0x3df, read8_delegate(*this, FUNC(isa8_epc_mda_device::io_read)), write8_delegate(*this, FUNC(isa8_epc_mda_device::io_write)));
-			m_isa->install_bank(0xb8000, 0xbffff, "bank_epc", &m_videoram[0]); // Color emulation mode VRAM address, but same 32KB areas as there are only this amount on the board
+			m_isa->install_bank(0xb8000, 0xbffff, &m_videoram[0]); // Color emulation mode VRAM address, but same 32KB areas as there are only this amount on the board
 		}
 		m_installed = true;
 	}

@@ -183,8 +183,8 @@ WRITE8_MEMBER(d64plus_state::d64plus_bank_w)
 	switch (data & 0x06)
 	{
 	case 0:  // Standard Dragon 32 Dynamic bank
-		space.install_write_bank(0x0000, 0x7fff, "bank0000_w");
-		space.install_read_bank(0x0000, 0x7fff, "bank0000_r");
+		space.install_write_bank(0x0000, 0x7fff, membank(":sam:bank0000_w"));
+		space.install_read_bank(0x0000, 0x7fff, membank(":sam:bank0000_r"));
 		sam().set_bank_offset(0, 0x0000);
 		break;
 	case 2:  // First extra 32K bank (A)

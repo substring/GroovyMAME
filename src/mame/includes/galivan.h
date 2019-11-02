@@ -28,7 +28,8 @@ public:
 		m_nb1414m4(*this, "nb1414m4"),
 		m_gfxdecode(*this, "gfxdecode"),
 		m_palette(*this, "palette"),
-		m_soundlatch(*this, "soundlatch")
+		m_soundlatch(*this, "soundlatch"),
+		m_rombank(*this, "rombank")
 	{ }
 
 	void galivan(machine_config &config);
@@ -92,6 +93,7 @@ private:
 	required_device<gfxdecode_device> m_gfxdecode;
 	required_device<palette_device> m_palette;
 	required_device<generic_latch_8_device> m_soundlatch;
+	memory_bank_creator m_rombank;
 
 	void galivan_map(address_map &map);
 	void ninjemak_io_map(address_map &map);

@@ -72,7 +72,8 @@ public:
 		m_speaker(*this, "speaker"),
 		m_cassette(*this, "cassette"),
 		m_ioexp(*this, "io"),
-		m_memexp(*this, "mem")
+		m_memexp(*this, "mem"),
+		m_1h_vbank(*this, "1h_vbank")
 	{
 	}
 
@@ -111,6 +112,7 @@ private:
 	required_device<cassette_image_device> m_cassette;
 	required_device<vtech_ioexp_slot_device> m_ioexp;
 	required_device<vtech_memexp_slot_device> m_memexp;
+	memory_bank_creator m_1h_vbank;
 };
 
 
@@ -255,7 +257,7 @@ WRITE8_MEMBER( vtech1_state::vtech1_latch_w )
 
 WRITE8_MEMBER( vtech1_state::vtech1_video_bank_w )
 {
-	membank("bank4")->set_entry(data & 0x03);
+	m_1h_vbank->set_entry(data & 0x03);
 }
 
 
@@ -283,9 +285,9 @@ void vtech1_state::init_vtech1h()
 	// the SHRG mod replaces the standard videoram chip with an 8k chip
 	m_videoram.allocate(0x2000);
 
-	m_maincpu->space(AS_PROGRAM).install_readwrite_bank(0x7000, 0x77ff, "bank4");
-	membank("bank4")->configure_entries(0, 4, m_videoram, 0x800);
-	membank("bank4")->set_entry(0);
+	m_maincpu->space(AS_PROGRAM).install_readwrite_bank(0x7000, 0x77ff, m_1h_vbank);
+	m_1h_vbank->configure_entries(0, 4, m_videoram, 0x800);
+	m_1h_vbank->set_entry(0);
 }
 
 

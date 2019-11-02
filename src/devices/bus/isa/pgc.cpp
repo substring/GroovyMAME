@@ -248,9 +248,9 @@ void isa8_pgc_device::device_reset()
 
 	m_commarea = memregion("commarea")->base();
 	if (BIT(ioport("DSW")->read(), 1))
-		m_isa->install_bank(0xc6400, 0xc67ff, "commarea", m_commarea);
+		m_isa->install_bank(0xc6400, 0xc67ff, m_commarea);
 	else
-		m_isa->install_bank(0xc6000, 0xc63ff, "commarea", m_commarea);
+		m_isa->install_bank(0xc6000, 0xc63ff, m_commarea);
 }
 
 //
@@ -385,8 +385,7 @@ READ8_MEMBER(isa8_pgc_device::init_r)
 	space.unmap_read(0xf8000, 0xfffff);
 
 	LOG("INIT: mapping emulator RAM\n");
-	space.install_readwrite_bank(0xf8000, 0xfffff, "eram");
-	membank("eram")->set_base(m_eram.get());
+	space.install_ram(0xf8000, 0xfffff, m_eram.get());
 
 	LOG("INIT: mapping LUT\n");
 	space.install_write_handler(0xf8400, 0xf85ff, write8_delegate(*this, FUNC(isa8_pgc_device::lut_w)));
