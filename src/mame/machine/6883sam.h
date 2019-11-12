@@ -169,7 +169,7 @@ private:
 	address_space *               m_cpu_space;
 	devcb_read8                   m_read_res;
 	sam_bank                      m_banks[8];
-	memory_bank_creator           m_space_banks[20];
+	memory_bank_array_creator<20> m_space_banks;
 	sam_space<0, 0x0000, 0x7FFF>  m_space_0000;
 	sam_space<1, 0x8000, 0x9FFF>  m_space_8000;
 	sam_space<2, 0xA000, 0xBFFF>  m_space_A000;

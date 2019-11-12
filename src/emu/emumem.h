@@ -1483,8 +1483,8 @@ public:
 	running_machine &machine() const { return m_machine; }
 	int entry() const { return m_curentry; }
 	void *base() const { return m_entries.empty() ? nullptr : m_entries[m_curentry]; }
-	std::string tag() const { return m_tag; }
-	std::string name() const { return m_name; }
+	const std::string &tag() const { return m_tag; }
+	const std::string &name() const { return m_name; }
 
 	// set the base explicitly
 	void set_base(void *base);
@@ -1520,7 +1520,7 @@ public:
 	{ }
 
 	// getters
-	std::string name() const { return m_name; }
+	const std::string &name() const { return m_name; }
 	void *ptr() const { return m_ptr; }
 	size_t bytes() const { return m_bytes; }
 	endianness_t endianness() const { return m_endianness; }
@@ -1554,7 +1554,7 @@ public:
 	u8 *base() { return (m_buffer.size() > 0) ? &m_buffer[0] : nullptr; }
 	u8 *end() { return base() + m_buffer.size(); }
 	u32 bytes() const { return m_buffer.size(); }
-	std::string name() const { return m_name; }
+	const std::string &name() const { return m_name; }
 
 	// flag expansion
 	endianness_t endianness() const { return m_endianness; }

@@ -775,7 +775,7 @@ template <unsigned Count> using required_memory_bank_array = memory_bank_array_f
 
 /// \brief Memory bank creator
 ///
-/// Creates a memory bank or pick up an existing one.
+/// Creates a memory bank or picks up an existing one.
 class memory_bank_creator : finder_base
 {
 public:

@@ -274,7 +274,7 @@ void sega_315_5195_mapper_device::map_as_ram(u32 offset, u32 length, offs_t mirr
 		whandler.isnull() ? "none" : whandler.name());
 
 	// map now
-		m_space->install_ram(info.start, info.end, info.mirror, owner()->memshare(bank_share_name)->ptr());
+	m_space->install_ram(info.start, info.end, info.mirror, owner()->memshare(bank_share_name)->ptr());
 
 	// either install a write handler or a write bank, as appropriate
 	if (!whandler.isnull())

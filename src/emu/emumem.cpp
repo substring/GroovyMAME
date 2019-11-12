@@ -1066,7 +1066,7 @@ memory_region *memory_manager::region_alloc(std::string name, u32 length, u8 wid
 {
 	// make sure we don't have a region of the same name; also find the end of the list
 	if (m_regionlist.find(name) != m_regionlist.end())
-		fatalerror("region_alloc called with duplicate region name \"%s\"\n", name.c_str());
+		fatalerror("region_alloc called with duplicate region name \"%s\"\n");
 
 	// allocate the region
 	return m_regionlist.emplace(name, std::make_unique<memory_region>(machine(), name, length, width, endian)).first->second.get();
@@ -1113,7 +1113,7 @@ memory_share *memory_manager::share_alloc(address_space &space, std::string name
 {
 	// make sure we don't have a share of the same name; also find the end of the list
 	if (m_sharelist.find(name) != m_sharelist.end())
-		fatalerror("share_alloc called with duplicate share name \"%s\"\n", name.c_str());
+		fatalerror("share_alloc called with duplicate share name \"%s\"\n", name);
 
 	// allocate and register the memory
 	void *ptr = allocate_memory(space, name, width, bytes);
@@ -1141,12 +1141,14 @@ memory_share *memory_manager::share_find(std::string name)
 
 memory_bank *memory_manager::bank_alloc(device_t &device, std::string name)
 {
-	// make sure we don't have a bank of the same name
-	if (m_banklist.find(name) != m_banklist.end())
-		fatalerror("bank_alloc called with duplicate bank name \"%s\"\n", name.c_str());
-
 	// allocate the bank
-	return m_banklist.emplace(name, std::make_unique<memory_bank>(device, name)).first->second.get();
+	auto const ins = m_banklist.emplace(name, std::make_unique<memory_bank>(device, name));
+
+	// make sure we don't have a bank of the same name
+	if (!ins.second)
+		fatalerror("bank_alloc called with duplicate bank name \"%s\"\n", name);
+
+	return ins.first->second.get();
 }
 
 
@@ -2159,8 +2161,8 @@ memory_bank::memory_bank(device_t &device, std::string tag)
 	: m_machine(device.machine()),
 	  m_curentry(0)
 {
-	m_tag = tag;
-	m_name = string_format("Bank '%s'", tag);
+	m_tag = std::move(tag);
+	m_name = string_format("Bank '%s'", m_tag);
 	machine().save().save_item(&device, "memory", m_tag.c_str(), 0, NAME(m_curentry));
 }
 
@@ -2254,7 +2256,7 @@ void memory_bank::configure_entries(int startentry, int numentries, void *base, 
 
 memory_region::memory_region(running_machine &machine, std::string name, u32 length, u8 width, endianness_t endian)
 	: m_machine(machine),
-		m_name(name),
+	    m_name(std::move(name)),
 		m_buffer(length),
 		m_endianness(endian),
 		m_bitwidth(width * 8),

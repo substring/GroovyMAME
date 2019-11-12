@@ -77,17 +77,17 @@ sam6883_device::sam6883_device(const machine_config &mconfig, const char *tag, d
 	, m_cpu_space(nullptr)
 	, m_read_res(*this)
 	, m_banks{ { *this }, { *this }, { *this }, { *this }, { *this }, { *this }, { *this }, { *this } }
-	, m_space_banks{
-		{ *this, "bank0000_r" }, { *this, "bank0000_w" },
-		{ *this, "bank8000_r" }, { *this, "bank8000_w" },
-		{ *this, "bankA000_r" }, { *this, "bankA000_w" },
-		{ *this, "bankC000_r" }, { *this, "bankC000_w" },
-		{ *this, "bankFF00_r" }, { *this, "bankFF00_w" },
-		{ *this, "bankFF20_r" }, { *this, "bankFF20_w" },
-		{ *this, "bankFF40_r" }, { *this, "bankFF40_w" },
-		{ *this, "bankFF60_r" }, { *this, "bankFF60_w" },
-		{ *this, "bankFFE0_r" }, { *this, "bankFFE0_w" },
-		{ *this, "bankFFF2_r" }, { *this, "bankFFF2_w" }}
+	, m_space_banks(*this, {
+			"bank0000_r", "bank0000_w",
+			"bank8000_r", "bank8000_w",
+			"bankA000_r", "bankA000_w",
+			"bankC000_r", "bankC000_w",
+			"bankFF00_r", "bankFF00_w",
+			"bankFF20_r", "bankFF20_w",
+			"bankFF40_r", "bankFF40_w",
+			"bankFF60_r", "bankFF60_w",
+			"bankFFE0_r", "bankFFE0_w",
+			"bankFFF2_r", "bankFFF2_w"})
 	, m_space_0000(*this)
 	, m_space_8000(*this)
 	, m_space_A000(*this)
