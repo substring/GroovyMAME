@@ -482,9 +482,9 @@ void bw12_state::machine_start()
 	m_led.resolve();
 
 	/* setup memory banking */
-	membank("bank1")->configure_entry(0, m_rom->base());
-	membank("bank1")->configure_entry(1, m_ram->pointer());
-	membank("bank1")->configure_entries(2, 2, m_ram->pointer() + 0x10000, 0x8000);
+	m_bank->configure_entry(0, m_rom->base());
+	m_bank->configure_entry(1, m_ram->pointer());
+	m_bank->configure_entries(2, 2, m_ram->pointer() + 0x10000, 0x8000);
 
 	/* register for state saving */
 	save_item(NAME(m_curbank));

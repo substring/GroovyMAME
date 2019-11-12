@@ -526,18 +526,19 @@ void sam6883_device::sam_space<_id, _addrstart, _addrend>::point_specific_bank(c
 			? std::min(addrend + 1, addrstart + length)
 			: addrend + 1;
 
+		memory_bank = m_owner.m_space_banks[2*_id + (is_write ? 1 : 0)];
 		// install the bank
 		if (is_write)
 		{
 			if (addrstart < nop_addrstart)
-				cpu_space().install_write_bank(addrstart, nop_addrstart - 1, 0, m_owner.m_space_banks[_id]);
+				cpu_space().install_write_bank(addrstart, nop_addrstart - 1, 0, memory_bank);
 			if (nop_addrstart <= addrend)
 				cpu_space().nop_write(nop_addrstart, addrend);
 		}
 		else
 		{
 			if (addrstart < nop_addrstart)
-				cpu_space().install_read_bank(addrstart, nop_addrstart - 1, 0, m_owner.m_space_banks[_id]);
+				cpu_space().install_read_bank(addrstart, nop_addrstart - 1, 0, memory_bank);
 			if (nop_addrstart <= addrend)
 				cpu_space().nop_read(nop_addrstart, addrend);
 		}
@@ -545,13 +546,10 @@ void sam6883_device::sam_space<_id, _addrstart, _addrend>::point_specific_bank(c
 		m_length = length;
 
 		// point the bank
-		if (memory_bank != nullptr)
-		{
-			if (is_write && bank.m_memory_read_only)
-				m_owner.m_space_banks[_id]->set_base(m_owner.m_dummy);
-			else
-				m_owner.m_space_banks[_id]->set_base(bank.m_memory + offset);
-		}
+		if (is_write && bank.m_memory_read_only)
+			memory_bank->set_base(m_owner.m_dummy);
+		else
+			memory_bank->set_base(bank.m_memory + offset);
 	}
 	else
 	{
