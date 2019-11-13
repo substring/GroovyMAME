@@ -428,7 +428,7 @@ void jaguar_state::machine_reset()
 	/* 68020 only: copy the interrupt vectors into RAM */
 	if (!m_is_r3000)
 	{
-		memcpy(m_shared_ram, m_rom_base, 0x400);    // do not increase, or Doom breaks
+		memcpy(m_shared_ram, m_main_rom, 0x400);    // do not increase, or Doom breaks
 		m_maincpu->pulse_input_line(INPUT_LINE_RESET, attotime::zero);
 
 		if(m_is_jagcd)
@@ -1084,7 +1084,7 @@ WRITE16_MEMBER(jaguar_state::joystick_w16){ if (!(offset&1)) { joystick_w(space,
 
 READ32_MEMBER(jaguar_state::shared_ram_r){ return m_shared_ram[offset]; }
 WRITE32_MEMBER(jaguar_state::shared_ram_w){ COMBINE_DATA(&m_shared_ram[offset]); }
-READ32_MEMBER(jaguar_state::rom_base_r){ return m_rom_base[offset]; }
+READ32_MEMBER(jaguar_state::rom_base_r){ return m_main_rom[offset]; }
 WRITE32_MEMBER(jaguar_state::rom_base_w){ /*ROM!*/ }
 READ32_MEMBER(jaguar_state::cart_base_r){ return m_cart_base[offset]; }
 WRITE32_MEMBER(jaguar_state::cart_base_w){ /*ROM!*/ }
@@ -1362,7 +1362,7 @@ void jaguar_state::r3000_map(address_map &map)
 	map(0x14000004, 0x14000007).w("watchdog", FUNC(watchdog_timer_device::reset32_w));
 	map(0x16000000, 0x16000003).w(FUNC(jaguar_state::eeprom_enable_w));
 	map(0x18000000, 0x18001fff).rw(FUNC(jaguar_state::eeprom_data_r), FUNC(jaguar_state::eeprom_data_w)).share("nvram");
-	map(0x1fc00000, 0x1fdfffff).rom().region("maincpu", 0).share("rom");
+	map(0x1fc00000, 0x1fdfffff).rom().region("maincpu", 0);
 }
 
 void jaguar_state::r3000_rom_map(address_map &map)
@@ -1376,7 +1376,7 @@ void jaguar_state::r3000_rom_map(address_map &map)
 void jaguar_state::m68020_map(address_map &map)
 {
 	map(0x000000, 0x7fffff).ram().share("sharedram");
-	map(0x800000, 0x9fffff).rom().region("maincpu", 0).share("rom");
+	map(0x800000, 0x9fffff).rom().region("maincpu", 0);
 	map(0xa00000, 0xa1ffff).ram().share("mainram");
 	map(0xa20000, 0xa21fff).rw(FUNC(jaguar_state::eeprom_data_r), FUNC(jaguar_state::eeprom_data_w)).share("nvram");
 	map(0xa30000, 0xa30003).w("watchdog", FUNC(watchdog_timer_device::reset32_w));
@@ -1443,7 +1443,7 @@ void jaguar_state::dsp_map(address_map &map)
 	map(0xf1a100, 0xf1a13f).rw(FUNC(jaguar_state::dspctrl_r), FUNC(jaguar_state::dspctrl_w));
 	map(0xf1a140, 0xf1a17f).rw(FUNC(jaguar_state::serial_r), FUNC(jaguar_state::serial_w));
 	map(0xf1b000, 0xf1cfff).ram().share("dspram");
-	map(0xf1d000, 0xf1dfff).r(FUNC(jaguar_state::wave_rom_r)).share("waverom").region("waverom", 0);
+	map(0xf1d000, 0xf1dfff).r(FUNC(jaguar_state::wave_rom_r)).region("waverom", 0);
 }
 
 void jaguar_state::dsp_rom_map(address_map &map)
@@ -1458,9 +1458,9 @@ void jaguar_state::dsp_rom_map(address_map &map)
 void jaguar_state::jag_gpu_map(address_map &map)
 {
 	map.global_mask(0xffffff);
-	map(0x000000, 0x1fffff).ram().mirror(0x200000).share("sharedram").region("maincpu", 0);
-	map(0x800000, 0xdfffff).rom().share("cart").region("maincpu", 0x800000);
-	map(0xe00000, 0xe1ffff).rom().share("rom").region("maincpu", 0xe00000);
+	map(0x000000, 0x1fffff).ram().mirror(0x200000).share("sharedram");
+	map(0x800000, 0xdfffff).rom().share("cart");
+	map(0xe00000, 0xe1ffff).rom().region("maincpu", 0);
 	map(0xf00000, 0xf003ff).rw(FUNC(jaguar_state::tom_regs_r), FUNC(jaguar_state::tom_regs_w));
 	map(0xf00400, 0xf005ff).mirror(0x000200).ram().share("gpuclut");
 	map(0xf02100, 0xf021ff).mirror(0x008000).rw(FUNC(jaguar_state::gpuctrl_r), FUNC(jaguar_state::gpuctrl_w));
@@ -1471,15 +1471,15 @@ void jaguar_state::jag_gpu_map(address_map &map)
 	map(0xf1a100, 0xf1a13f).rw(FUNC(jaguar_state::dspctrl_r), FUNC(jaguar_state::dspctrl_w));
 	map(0xf1a140, 0xf1a17f).rw(FUNC(jaguar_state::serial_r), FUNC(jaguar_state::serial_w));
 	map(0xf1b000, 0xf1cfff).ram().share("dspram");
-	map(0xf1d000, 0xf1dfff).rom().share("waverom").region("waverom", 0);
+	map(0xf1d000, 0xf1dfff).rom().region("waverom", 0);
 }
 
 void jaguar_state::jag_dsp_map(address_map &map)
 {
 	map.global_mask(0xffffff);
-	map(0x000000, 0x1fffff).mirror(0x200000).ram().share("sharedram").region("maincpu", 0);
-	map(0x800000, 0xdfffff).rom().share("cart").region("maincpu", 0x800000);
-	map(0xe00000, 0xe1ffff).rom().share("rom").region("maincpu", 0xe00000);
+	map(0x000000, 0x1fffff).mirror(0x200000).ram().share("sharedram");
+	map(0x800000, 0xdfffff).rom().share("cart");
+	map(0xe00000, 0xe1ffff).rom().region("maincpu", 0);
 	map(0xf00000, 0xf003ff).rw(FUNC(jaguar_state::tom_regs_r), FUNC(jaguar_state::tom_regs_w));
 	map(0xf00400, 0xf005ff).mirror(0x000200).ram().share("gpuclut");
 	map(0xf02100, 0xf021ff).mirror(0x008000).rw(FUNC(jaguar_state::gpuctrl_r), FUNC(jaguar_state::gpuctrl_w));
@@ -1496,10 +1496,10 @@ void jaguar_state::jag_dsp_map(address_map &map)
 void jaguar_state::jagcd_gpu_map(address_map &map)
 {
 	map.global_mask(0xffffff);
-	map(0x000000, 0x1fffff).ram().mirror(0x200000).share("sharedram").region("maincpu", 0);
+	map(0x000000, 0x1fffff).ram().mirror(0x200000).share("sharedram");
 	map(0x800000, 0x83ffff).rom().region("cdbios", 0);
 	map(0xdfff00, 0xdfff3f).rw(FUNC(jaguar_state::butch_regs_r), FUNC(jaguar_state::butch_regs_w));
-	map(0xe00000, 0xe1ffff).rom().share("rom").region("maincpu", 0xe00000);
+	map(0xe00000, 0xe1ffff).rom().region("maincpu", 0);
 	map(0xf00000, 0xf003ff).rw(FUNC(jaguar_state::tom_regs_r), FUNC(jaguar_state::tom_regs_w));
 	map(0xf00400, 0xf005ff).mirror(0x000200).ram().share("gpuclut");
 	map(0xf02100, 0xf021ff).mirror(0x008000).rw(FUNC(jaguar_state::gpuctrl_r), FUNC(jaguar_state::gpuctrl_w));
@@ -1510,16 +1510,16 @@ void jaguar_state::jagcd_gpu_map(address_map &map)
 	map(0xf1a100, 0xf1a13f).rw(FUNC(jaguar_state::dspctrl_r), FUNC(jaguar_state::dspctrl_w));
 	map(0xf1a140, 0xf1a17f).rw(FUNC(jaguar_state::serial_r), FUNC(jaguar_state::serial_w));
 	map(0xf1b000, 0xf1cfff).ram().share("dspram");
-	map(0xf1d000, 0xf1dfff).rom().share("waverom").region("waverom", 0);
+	map(0xf1d000, 0xf1dfff).rom().region("waverom", 0);
 }
 
 void jaguar_state::jagcd_dsp_map(address_map &map)
 {
 	map.global_mask(0xffffff);
-	map(0x000000, 0x1fffff).mirror(0x200000).ram().share("sharedram").region("maincpu", 0);
+	map(0x000000, 0x1fffff).mirror(0x200000).ram().share("sharedram");
 	map(0x800000, 0x83ffff).rom().region("cdbios", 0);
 	map(0xdfff00, 0xdfff3f).rw(FUNC(jaguar_state::butch_regs_r), FUNC(jaguar_state::butch_regs_w));
-	map(0xe00000, 0xe1ffff).rom().share("rom").region("maincpu", 0xe00000);
+	map(0xe00000, 0xe1ffff).rom().region("maincpu", 0);
 	map(0xf00000, 0xf003ff).rw(FUNC(jaguar_state::tom_regs_r), FUNC(jaguar_state::tom_regs_w));
 	map(0xf00400, 0xf005ff).mirror(0x000200).ram().share("gpuclut");
 	map(0xf02100, 0xf021ff).mirror(0x008000).rw(FUNC(jaguar_state::gpuctrl_r), FUNC(jaguar_state::gpuctrl_w));
@@ -1955,7 +1955,7 @@ void jaguar_state::jaguarcd(machine_config &config)
 void jaguar_state::fix_endian( uint32_t addr, uint32_t size )
 {
 	uint8_t j[4];
-	uint8_t *ram = memregion("maincpu")->base();
+	uint8_t *ram = reinterpret_cast<uint8_t *>(m_shared_ram.target());
 	uint32_t i;
 	size += addr;
 	logerror("File Loaded to address range %X to %X\n",addr,size-1);
@@ -1981,7 +1981,7 @@ void jaguar_state::init_jaguar()
 
 	for (int i = 0; i < 0x20000 / 4; i++) // the cd bios is bigger.. check
 	{
-		m_rom_base[i] = ((m_rom_base[i] & 0xffff0000)>>16) | ((m_rom_base[i] & 0x0000ffff)<<16);
+		m_main_rom[i] = ((m_main_rom[i] & 0xffff0000)>>16) | ((m_main_rom[i] & 0x0000ffff)<<16);
 	}
 
 	for (int i = 0; i < 0x1000 / 4; i++)
@@ -1999,7 +1999,7 @@ void jaguar_state::init_jaguarcd()
 
 	for (int i = 0; i < 0x20000 / 4; i++) // the cd bios is bigger.. check
 	{
-		m_rom_base[i] = ((m_rom_base[i] & 0xffff0000)>>16) | ((m_rom_base[i] & 0x0000ffff)<<16);
+		m_main_rom[i] = ((m_main_rom[i] & 0xffff0000)>>16) | ((m_main_rom[i] & 0x0000ffff)<<16);
 	}
 
 	for (int i = 0; i < 0x1000 / 4; i++)
@@ -2060,7 +2060,7 @@ image_init_result jaguar_state::quickload_cb(device_image_interface &image, cons
 	{
 		memset(m_shared_ram, 0, 0x200000);
 		image.fseek(0, SEEK_SET);
-		image.fread( &memregion("maincpu")->base()[start-skip], quickload_size);
+		image.fread( &m_shared_ram[(start-skip)/4], quickload_size);
 		quickload_begin = start;
 		fix_endian((start-skip)&0xfffffc, quickload_size);
 	}
@@ -2099,7 +2099,7 @@ DEVICE_IMAGE_LOAD_MEMBER( jaguar_state::cart_load )
 		}
 
 		/* Load cart into memory */
-		image.fread(&memregion("maincpu")->base()[0x800000 + load_offset], size);
+		image.fread(&m_cart_base[load_offset/4], size);
 	}
 	else
 	{
@@ -2117,7 +2117,7 @@ DEVICE_IMAGE_LOAD_MEMBER( jaguar_state::cart_load )
 	//  m_cart_base[0x102] = 1;
 
 	/* Transfer control to the bios */
-	m_maincpu->set_pc(m_rom_base[1]);
+	m_maincpu->set_pc(m_main_rom[1]);
 	return image_init_result::PASS;
 }
 
@@ -2134,16 +2134,16 @@ DEVICE_IMAGE_LOAD_MEMBER( jaguar_state::cart_load )
 /* Home System */
 
 ROM_START( jaguar )
-	ROM_REGION( 0x1000000, "maincpu", 0 )  /* 4MB for RAM at 0 */
-	ROM_LOAD16_WORD( "jagboot.rom", 0xe00000, 0x020000, CRC(fb731aaa) SHA1(f8991b0c385f4e5002fa2a7e2f5e61e8c5213356) )
+	ROM_REGION( 0x020000, "maincpu", 0 )  /* 4MB for RAM at 0 */
+	ROM_LOAD16_WORD( "jagboot.rom", 0, 0x020000, CRC(fb731aaa) SHA1(f8991b0c385f4e5002fa2a7e2f5e61e8c5213356) )
 
 	ROM_REGION16_BE( 0x1000, "waverom", 0 )
 	ROM_LOAD16_WORD("jagwave.rom", 0x0000, 0x1000, CRC(7a25ee5b) SHA1(58117e11fd6478c521fbd3fdbe157f39567552f0) )
 ROM_END
 
 ROM_START( jaguarcd )
-	ROM_REGION( 0x1000000, "maincpu", 0 )
-	ROM_LOAD16_WORD( "jagboot.rom", 0xe00000, 0x020000, CRC(fb731aaa) SHA1(f8991b0c385f4e5002fa2a7e2f5e61e8c5213356) )
+	ROM_REGION( 0x020000, "maincpu", 0 )
+	ROM_LOAD16_WORD( "jagboot.rom", 0, 0x020000, CRC(fb731aaa) SHA1(f8991b0c385f4e5002fa2a7e2f5e61e8c5213356) )
 	// TODO: cart needs to be removed (CD BIOS runs in the cart space)
 
 	ROM_REGION(0x40000, "cdbios", 0 )
@@ -2630,7 +2630,7 @@ void jaguar_state::init_maxforce()
 	cojag_common_init(0x0c0, 0x09e);
 
 	/* patch the protection */
-	m_rom_base[0x220/4] = 0x03e00008;
+	m_main_rom[0x220/4] = 0x03e00008;
 
 #if ENABLE_SPEEDUP_HACKS
 	/* install speedup for main CPU */
@@ -2647,7 +2647,7 @@ void jaguar_state::init_area51mx()
 	cojag_common_init(0x0c0, 0x09e);
 
 	/* patch the protection */
-	m_rom_base[0x418/4] = 0x4e754e75;
+	m_main_rom[0x418/4] = 0x4e754e75;
 
 #if ENABLE_SPEEDUP_HACKS
 	/* install speedup for main CPU */
@@ -2663,7 +2663,7 @@ void jaguar_state::init_a51mxr3k()
 	cojag_common_init(0x0c0, 0x09e);
 
 	/* patch the protection */
-	m_rom_base[0x220/4] = 0x03e00008;
+	m_main_rom[0x220/4] = 0x03e00008;
 
 #if ENABLE_SPEEDUP_HACKS
 	/* install speedup for main CPU */

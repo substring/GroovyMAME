@@ -1148,14 +1148,14 @@ void address_map::map_validity_check(validity_checker &valid, int spacenum) cons
 			osd_printf_error("In %s memory range %x-%x, mirror %x touches a select bit (%x)\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend, entry.m_addrmirror, entry.m_addrmirror & entry.m_addrselect);
 
 		// if this is a program space, auto-assign implicit ROM entries
-		if (entry.m_read.m_type == AMH_ROM && entry.m_region == nullptr)
+		if (entry.m_read.m_type == AMH_ROM && entry.m_region == nullptr && spacenum == AS_PROGRAM && entry.m_share == nullptr)
 		{
 			entry.m_region = m_device->tag();
 			entry.m_rgnoffs = entry.m_addrstart;
 		}
 
 		// if this entry references a memory region, validate it
-		if (entry.m_region != nullptr && entry.m_share == nullptr)
+		if (entry.m_region != nullptr)
 		{
 			// address map entries that reference regions but are NOPs are pointless
 			if (entry.m_read.m_type == AMH_NONE && entry.m_write.m_type == AMH_NONE)
@@ -1184,6 +1184,9 @@ void address_map::map_validity_check(validity_checker &valid, int spacenum) cons
 			// error if not found
 			if (!found)
 				osd_printf_error("%s space memory map entry %X-%X references nonexistent region '%s'\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend, entry.m_region);
+
+			if (entry.m_share != nullptr)
+				osd_printf_error("%s space memory map entry %X-%X has both .region() and .share()\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend);
 		}
 
 		// make sure all devices exist

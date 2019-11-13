@@ -407,7 +407,7 @@ void playch10_state::cart_c_map(address_map &map)
 
 void playch10_state::cart_d_map(address_map &map)
 {
-	cart_d_map(map);
+	cart_map(map);
 
 	/* MMC mapper at writes to $8000-$ffff */
 	map(0x8000, 0xffff).w(FUNC(playch10_state::mmc1_rom_switch_w));
@@ -415,7 +415,7 @@ void playch10_state::cart_d_map(address_map &map)
 
 void playch10_state::cart_d2_map(address_map &map)
 {
-	cart_map(map);
+	cart_d_map(map);
 
 	/* extra ram at $6000-$7fff */
 	map(0x6000, 0x7fff).ram();

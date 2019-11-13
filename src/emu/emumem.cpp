@@ -1066,7 +1066,7 @@ memory_region *memory_manager::region_alloc(std::string name, u32 length, u8 wid
 {
 	// make sure we don't have a region of the same name; also find the end of the list
 	if (m_regionlist.find(name) != m_regionlist.end())
-		fatalerror("region_alloc called with duplicate region name \"%s\"\n");
+		fatalerror("region_alloc called with duplicate region name \"%s\"\n", name);
 
 	// allocate the region
 	return m_regionlist.emplace(name, std::make_unique<memory_region>(machine(), name, length, width, endian)).first->second.get();
@@ -1479,8 +1479,8 @@ void address_space::prepare_map()
 			entry.m_memory = share->ptr();
 		}
 
-		// if this is a ROM handler without a specified region, attach it to the implicit region
-		if (m_spacenum == 0 && entry.m_read.m_type == AMH_ROM && entry.m_region == nullptr)
+		// if this is a ROM handler without a specified region and not shared, attach it to the implicit region
+		if (m_spacenum == AS_PROGRAM && entry.m_read.m_type == AMH_ROM && entry.m_region == nullptr && entry.m_share == nullptr)
 		{
 			// make sure it fits within the memory region before doing so, however
 			if (entry.m_addrend < devregionsize)
@@ -1491,7 +1491,7 @@ void address_space::prepare_map()
 		}
 
 		// validate adjusted addresses against implicit regions
-		if (entry.m_region != nullptr && entry.m_share == nullptr)
+		if (entry.m_region != nullptr)
 		{
 			// determine full tag
 			std::string fulltag = entry.m_devbase.subtag(entry.m_region);
@@ -1504,6 +1504,9 @@ void address_space::prepare_map()
 			// validate the region
 			if (entry.m_rgnoffs + m_config.addr2byte(entry.m_addrend - entry.m_addrstart + 1) > region->bytes())
 				fatalerror("device '%s' %s space memory map entry %X-%X extends beyond region \"%s\" size (%X)\n", m_device.tag(), m_name, entry.m_addrstart, entry.m_addrend, entry.m_region, region->bytes());
+
+			if (entry.m_share != nullptr)
+				fatalerror("device '%s' %s space memory map entry %X-%X has both .region() and .share()\n", m_device.tag(), m_name, entry.m_addrstart, entry.m_addrend);
 		}
 
 		// convert any region-relative entries to their memory pointers

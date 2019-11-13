@@ -38,10 +38,10 @@ public:
 		, m_rdac(*this, "rdac")
 		, m_cdrom(*this, "cdrom")
 		, m_nvram(*this, "nvram")
-		, m_rom_base(*this, "rom")
-		, m_cart_base(*this, "cart")
 		, m_dsp_ram(*this, "dspram")
+		, m_main_rom(*this, "maincpu")
 		, m_wave_rom(*this, "waverom")
+		, m_cart_base(*this, "cart")
 		, m_shared_ram(*this, "sharedram")
 		, m_gpu_ram(*this, "gpuram")
 		, m_gpu_clut(*this, "gpuclut")
@@ -113,14 +113,14 @@ private:
 
 	// memory
 	optional_shared_ptr<uint32_t> m_nvram;        // not used on console
-	required_shared_ptr<uint32_t> m_rom_base;
-	optional_shared_ptr<uint32_t> m_cart_base;    // not used in cojag
 	required_shared_ptr<uint32_t> m_dsp_ram;
-	required_shared_ptr<uint32_t> m_wave_rom;
+	required_region_ptr<uint32_t> m_main_rom;
+	required_region_ptr<uint32_t> m_wave_rom;
+	optional_shared_ptr<uint32_t> m_cart_base;
 	required_shared_ptr<uint32_t> m_shared_ram;
 	required_shared_ptr<uint32_t> m_gpu_ram;
 	required_shared_ptr<uint32_t> m_gpu_clut;
-	optional_memory_region      m_romboard_region;
+	optional_memory_region        m_romboard_region;
 	optional_shared_ptr<uint32_t> m_mainram;
 	optional_shared_ptr<uint32_t> m_mainram2;
 
