@@ -45,7 +45,7 @@ public:
 		m_main_ram(*this, "main_ram", 0),
 		m_nvram(*this, "nvram", 0),
 		m_video(*this, "video", 0),
-		m_main_rom(*this, "main_rom", 0),
+		m_main_rom(*this, "maincpu", 0),
 		m_grom(*this, "gfx1"),
 		m_soundbank(*this, "soundbank")
 	{ }
@@ -92,7 +92,7 @@ protected:
 	optional_shared_ptr<u16> m_main_ram;
 	optional_shared_ptr<u16> m_nvram;
 	optional_shared_ptr<u16> m_video;
-	optional_shared_ptr<u16> m_main_rom;
+	optional_region_ptr<u16> m_main_rom;
 
 	required_region_ptr<u8> m_grom;
 	required_memory_bank m_soundbank;

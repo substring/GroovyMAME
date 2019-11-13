@@ -348,7 +348,7 @@ void bzone_state::bzone_map(address_map &map)
 	map(0x1820, 0x182f).rw("pokey", FUNC(pokey_device::read), FUNC(pokey_device::write));
 	map(0x1840, 0x1840).w(FUNC(bzone_state::bzone_sounds_w));
 	map(0x1860, 0x187f).w(m_mathbox, FUNC(mathbox_device::go_w));
-	map(0x2000, 0x2fff).ram().share("avg:vectorram").region("maincpu", 0x2000);
+	map(0x2000, 0x2fff).ram().share("avg:vectorram");
 	map(0x3000, 0x7fff).rom();
 }
 
@@ -383,7 +383,7 @@ void redbaron_state::redbaron_map(address_map &map)
 	map(0x1810, 0x181f).rw("pokey", FUNC(pokey_device::read), FUNC(pokey_device::write));
 	map(0x1820, 0x185f).rw(FUNC(redbaron_state::earom_read), FUNC(redbaron_state::earom_write));
 	map(0x1860, 0x187f).nopr().w("mathbox", FUNC(mathbox_device::go_w));
-	map(0x2000, 0x2fff).ram().share("avg:vectorram").region("maincpu", 0x2000);
+	map(0x2000, 0x2fff).ram().share("avg:vectorram");
 	map(0x3000, 0x7fff).rom();
 }
 

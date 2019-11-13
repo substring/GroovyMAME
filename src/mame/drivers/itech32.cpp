@@ -877,7 +877,7 @@ void itech32_state::timekill_map(address_map &map)
 	map(0x080000, 0x08007f).rw(FUNC(itech32_state::video_r), FUNC(itech32_state::video_w)).share("video");
 	map(0x0a0000, 0x0a0001).w(FUNC(itech32_state::int1_ack_w));
 	map(0x0c0000, 0x0c7fff).ram().w(m_palette, FUNC(palette_device::write16)).share("palette");
-	map(0x100000, 0x17ffff).rom().region("user1", 0).share("main_rom");
+	map(0x100000, 0x17ffff).rom().region("user1", 0);
 }
 
 
@@ -898,7 +898,7 @@ void itech32_state::bloodstm_map(address_map &map)
 	map(0x580000, 0x59ffff).ram().w(FUNC(itech32_state::bloodstm_paletteram_w)).share("palette");
 	map(0x700001, 0x700001).w(FUNC(itech32_state::bloodstm_plane_w));
 	map(0x780000, 0x780001).portr("EXTRA");
-	map(0x800000, 0x87ffff).mirror(0x780000).rom().region("user1", 0).share("main_rom");
+	map(0x800000, 0x87ffff).mirror(0x780000).rom().region("user1", 0);
 }
 
 
@@ -970,7 +970,7 @@ map(0x000c00, 0x007fff).mirror(0x40000).rw(FUNC(itech32_state::test2_r), FUNC(it
 	map(0x280000, 0x280fff).ram().w(FUNC(drivedge_state::tms1_68k_ram_w)).share("tms1_ram");
 	map(0x300000, 0x300fff).ram().w(FUNC(drivedge_state::tms2_68k_ram_w)).share("tms2_ram");
 	map(0x380000, 0x380003).nopw(); // .w("watchdog", FUNC(watchdog_timer_device::reset16_w));
-	map(0x600000, 0x607fff).rom().region("user1", 0).share("main_rom");
+	map(0x600000, 0x607fff).rom().region("user1", 0);
 }
 
 void drivedge_state::tms1_map(address_map &map)
@@ -1009,7 +1009,7 @@ void itech32_state::itech020_map(address_map &map)
 	map(0x680000, 0x680003).nopw();
 /* ! */ map(0x680800, 0x68083f).readonly().nopw(); /* Serial DUART Channel A/B & Top LED sign - To Do! */
 	map(0x700002, 0x700002).w(FUNC(itech32_state::itech020_plane_w));
-	map(0x800000, 0xbfffff).rom().region("user1", 0).share("main_rom");
+	map(0x800000, 0xbfffff).rom().region("user1", 0);
 }
 
 
