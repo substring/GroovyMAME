@@ -812,6 +812,53 @@ protected:
 
 template <unsigned Count> using memory_bank_array_creator = object_array_finder<memory_bank_creator, Count>;
 
+/// \brief Memory share creator
+///
+/// Creates a memory share or picks up an existing one.
+class memory_share_creator : finder_base
+{
+public:
+	memory_share_creator(device_t &base, char const *tag, u8 width, size_t bytes, endianness_t endianness) :
+		finder_base(base, tag),
+		m_width(width),
+		m_bytes(bytes),
+		m_endianness(endianness)
+	{ }
+
+	virtual ~memory_share_creator() = default;
+
+	/// \brief Get pointer to target bank object
+	/// \return Pointer to target bank object if found, or nullptr otherwise.
+	memory_share *target() const { return m_target; }
+
+	/// \brief Cast-to-pointer operator
+	///
+	/// Allows implicit casting to a pointer to the target bank object.
+	/// \return Pointer to target bank object
+	operator memory_share *() const { return m_target; }
+
+	/// \brief Pointer member access operator
+	///
+	/// Allows pointer-member-style access to members of the target
+	/// bank object.
+	/// \return Pointer to target bank object
+	memory_share *operator->() const { return m_target; }
+
+protected:
+	virtual bool findit(bool isvalidation) override;
+	virtual void end_configuration() override;
+
+	/// \brief Pointer to target object
+	///
+	/// Pointer to target object, or nullptr if the creation has not been
+	/// attempted yet.
+	memory_share *m_target = nullptr;
+
+	u8                      m_width;                // width of the shared region in bits
+	size_t                  m_bytes;                // size of the shared region in bytes
+	endianness_t            m_endianness;           // endianness of the memory
+};
+
 /// \brief I/O port finder template
 ///
 /// Template argument is whether the I/O port is required.  It is a

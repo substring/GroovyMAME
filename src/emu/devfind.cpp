@@ -369,3 +369,32 @@ void memory_bank_creator::end_configuration()
 {
 	m_target = nullptr;
 }
+
+bool memory_share_creator::findit(bool validation)
+{
+	if (validation)
+		return true;
+
+	device_t &dev = m_base.get();
+	memory_manager &manager = dev.machine().memory();
+	std::string tag = dev.subtag(m_tag);
+	memory_share *share = manager.share_find(tag);
+	if (share)
+	{
+		m_target = share;
+		std::string result = share->compare(m_width, m_bytes, m_endianness);
+		if (!result.empty())
+		{
+			osd_printf_error("%s\n", result);
+			return false;
+		}
+	}
+	else
+		m_target = manager.share_alloc(dev, tag, m_width, m_bytes, m_endianness);
+	return true;
+}
+
+void memory_share_creator::end_configuration()
+{
+	m_target = nullptr;
+}

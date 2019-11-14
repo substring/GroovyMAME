@@ -1527,6 +1527,8 @@ public:
 	u8 bitwidth() const { return m_bitwidth; }
 	u8 bytewidth() const { return m_bytewidth; }
 
+	std::string compare(u8 width, size_t bytes, endianness_t endianness) const;
+
 private:
 	// internal state
 	std::string             m_name;                 // share name
@@ -1604,7 +1606,7 @@ public:
 	void *anonymous_alloc(address_space &space, size_t bytes, u8 width, offs_t start, offs_t end);
 
 	// shares
-	memory_share *share_alloc(address_space &space, std::string name, u8 width, size_t bytes, endianness_t endianness);
+	memory_share *share_alloc(device_t &dev, std::string name, u8 width, size_t bytes, endianness_t endianness);
 	memory_share *share_find(std::string name);
 
 	// banks
@@ -1630,7 +1632,7 @@ private:
 	void allocate(device_memory_interface &memory);
 
 	// Allocate some ram and register it for saving
-	void *allocate_memory(address_space &space, std::string name, u8 width, size_t bytes);
+	void *allocate_memory(device_t &dev, int spacenum, std::string name, u8 width, size_t bytes);
 };
 
 

@@ -1048,11 +1048,11 @@ void memory_manager::initialize()
 //  allocate_memory - allocate some ram and register it for saving
 //-------------------------------------------------
 
-void *memory_manager::allocate_memory(address_space &space, std::string name, u8 width, size_t bytes)
+void *memory_manager::allocate_memory(device_t &dev, int spacenum, std::string name, u8 width, size_t bytes)
 {
 	void *ptr = malloc(bytes);
 	m_datablocks.push_back(ptr);
-	machine().save().save_memory(&space.device(), "memory", space.device().tag(), space.spacenum(), name.c_str(), ptr, width, (u32)bytes / (width/8));
+	machine().save().save_memory(&dev, "memory", dev.tag(), spacenum, name.c_str(), ptr, width, (u32)bytes / (width/8));
 	return ptr;
 }
 
@@ -1101,7 +1101,7 @@ void memory_manager::region_free(std::string name)
 void *memory_manager::anonymous_alloc(address_space &space, size_t bytes, u8 width, offs_t start, offs_t end)
 {
 	std::string name = util::string_format("%x-%x", start, end);
-	return allocate_memory(space, name, width, bytes);
+	return allocate_memory(space.device(), space.spacenum(), name, width, bytes);
 }
 
 
@@ -1109,14 +1109,14 @@ void *memory_manager::anonymous_alloc(address_space &space, size_t bytes, u8 wid
 //  share_alloc - allocates a shared memory zone
 //-------------------------------------------------
 
-memory_share *memory_manager::share_alloc(address_space &space, std::string name, u8 width, size_t bytes, endianness_t endianness)
+memory_share *memory_manager::share_alloc(device_t &dev, std::string name, u8 width, size_t bytes, endianness_t endianness)
 {
 	// make sure we don't have a share of the same name; also find the end of the list
 	if (m_sharelist.find(name) != m_sharelist.end())
 		fatalerror("share_alloc called with duplicate share name \"%s\"\n", name);
 
 	// allocate and register the memory
-	void *ptr = allocate_memory(space, name, width, bytes);
+	void *ptr = allocate_memory(dev, 0, name, width, bytes);
 
 	// allocate the region
 	return m_sharelist.emplace(name, std::make_unique<memory_share>(name, width, bytes, endianness, ptr)).first->second.get();
@@ -1474,7 +1474,13 @@ void address_space::prepare_map()
 			if (!share)
 			{
 				VPRINTF("Creating share '%s' of length 0x%X\n", fulltag.c_str(), entry.m_addrend + 1 - entry.m_addrstart);
-				share = m_manager.share_alloc(*this, fulltag, m_config.data_width(), address_to_byte(entry.m_addrend + 1 - entry.m_addrstart), endianness());
+				share = m_manager.share_alloc(m_device, fulltag, m_config.data_width(), address_to_byte(entry.m_addrend + 1 - entry.m_addrstart), endianness());
+			}
+			else
+			{
+				std::string result = share->compare(m_config.data_width(), address_to_byte(entry.m_addrend + 1 - entry.m_addrstart), endianness());
+				if (!result.empty())
+					fatalerror("%s\n", result);
 			}
 			entry.m_memory = share->ptr();
 		}
@@ -2267,3 +2273,17 @@ memory_region::memory_region(running_machine &machine, std::string name, u32 len
 {
 	assert(width == 1 || width == 2 || width == 4 || width == 8);
 }
+
+std::string memory_share::compare(u8 width, size_t bytes, endianness_t endianness) const
+{
+	if (width != m_bitwidth)
+		return util::string_format("share %s found with unexpected width (expected %d, found %d)", m_name, width, m_bitwidth);
+	if (bytes != m_bytes)
+		return util::string_format("share %s found with unexpected size (expected %x, found %x)", m_name, bytes, m_bytes);
+	if (endianness != m_endianness)
+		return util::string_format("share %s found with unexpected endianness (expected %s, found %s)", m_name,
+								   endianness == ENDIANNESS_LITTLE ? "little" : "big",
+								   m_endianness == ENDIANNESS_LITTLE ? "little" : "big");
+	return "";
+}
+
