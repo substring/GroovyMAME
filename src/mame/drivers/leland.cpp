@@ -84,7 +84,7 @@ void leland_state::master_map_program(address_map &map)
 {
 	map(0x0000, 0x1fff).rom();
 	map(0x2000, 0x9fff).bankr(m_master_bankslot[0]);
-	map(0xa000, 0xdfff).bankr(m_master_bankslot[1]).w(FUNC(leland_state::leland_battery_ram_w)).share("battery");
+	map(0xa000, 0xdfff).bankr(m_master_bankslot[1]).w(FUNC(leland_state::leland_battery_ram_w));
 	map(0xe000, 0xefff).ram().share(m_mainram);
 	map(0xf000, 0xf3ff).rw(FUNC(leland_state::gated_paletteram_r), FUNC(leland_state::gated_paletteram_w)).share("palette");
 	map(0xf800, 0xf801).w(FUNC(leland_state::master_video_addr_w));
@@ -111,7 +111,7 @@ void ataxx_state::master_map_program_2(address_map &map)
 {
 	map(0x0000, 0x1fff).rom();
 	map(0x2000, 0x9fff).bankr(m_master_bankslot[0]);
-	map(0xa000, 0xdfff).bankr(m_master_bankslot[1]).w(FUNC(ataxx_state::ataxx_battery_ram_w)).share("battery");
+	map(0xa000, 0xdfff).bankr(m_master_bankslot[1]).w(FUNC(ataxx_state::ataxx_battery_ram_w));
 	map(0xe000, 0xf7ff).ram().share(m_mainram);
 	map(0xf800, 0xffff).rw(FUNC(ataxx_state::paletteram_and_misc_r), FUNC(ataxx_state::paletteram_and_misc_w)).share("palette");
 }

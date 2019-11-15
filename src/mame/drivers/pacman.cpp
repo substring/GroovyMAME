@@ -1207,14 +1207,14 @@ void pacman_state::s2650games_map(address_map &map)
 	map(0x0000, 0x0fff).bankr("bank1");
 	map(0x1000, 0x13ff).mirror(0x6000).w(FUNC(pacman_state::s2650games_colorram_w)).share("colorram");
 	map(0x1400, 0x141f).mirror(0x6000).w(FUNC(pacman_state::s2650games_scroll_w));
-	map(0x1420, 0x148f).mirror(0x6000).writeonly();
+	map(0x1420, 0x148f).mirror(0x6000).writeonly().share("unk_1420");
 	map(0x1490, 0x149f).mirror(0x6000).writeonly().share("s2650_spriteram");
 	map(0x14a0, 0x14bf).mirror(0x6000).w(FUNC(pacman_state::s2650games_tilesbank_w)).share("s2650_tileram");
-	map(0x14c0, 0x14ff).mirror(0x6000).writeonly();
+	map(0x14c0, 0x14ff).mirror(0x6000).writeonly().share("unk_14c0");
 	map(0x1500, 0x1507).mirror(0x6000).w(m_mainlatch, FUNC(ls259_device::write_d0));
-	map(0x1508, 0x155f).mirror(0x6000).writeonly();
+	map(0x1508, 0x155f).mirror(0x6000).writeonly().share("unk_1508");
 	map(0x1560, 0x156f).mirror(0x6000).writeonly().share("spriteram2");
-	map(0x1570, 0x157f).mirror(0x6000).writeonly();
+	map(0x1570, 0x157f).mirror(0x6000).writeonly().share("unk_1570");
 	map(0x1586, 0x1587).mirror(0x6000).nopw();
 	map(0x15c0, 0x15c0).mirror(0x6000).w(m_watchdog, FUNC(watchdog_timer_device::reset_w));
 	map(0x15c7, 0x15c7).mirror(0x6000).w(FUNC(pacman_state::porky_banking_w));

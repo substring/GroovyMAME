@@ -349,6 +349,7 @@ void finder_base::printf_warning(const char *format, ...)
 	va_end(argptr);
 }
 
+
 bool memory_bank_creator::findit(bool validation)
 {
 	if (validation)
@@ -370,7 +371,16 @@ void memory_bank_creator::end_configuration()
 	m_target = nullptr;
 }
 
-bool memory_share_creator::findit(bool validation)
+
+template<typename uX> memory_share_creator<uX>::memory_share_creator(device_t &base, char const *tag, size_t bytes, endianness_t endianness) :
+	finder_base(base, tag),
+	m_width(sizeof(uX)*8),
+	m_bytes(bytes),
+	m_endianness(endianness)
+{
+}
+
+template<typename uX> bool memory_share_creator<uX>::findit(bool validation)
 {
 	if (validation)
 		return true;
@@ -394,7 +404,12 @@ bool memory_share_creator::findit(bool validation)
 	return true;
 }
 
-void memory_share_creator::end_configuration()
+template<typename uX> void memory_share_creator<uX>::end_configuration()
 {
 	m_target = nullptr;
 }
+
+template class memory_share_creator<u8>;
+template class memory_share_creator<u16>;
+template class memory_share_creator<u32>;
+template class memory_share_creator<u64>;

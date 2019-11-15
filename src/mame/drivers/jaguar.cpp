@@ -1443,7 +1443,7 @@ void jaguar_state::dsp_map(address_map &map)
 	map(0xf1a100, 0xf1a13f).rw(FUNC(jaguar_state::dspctrl_r), FUNC(jaguar_state::dspctrl_w));
 	map(0xf1a140, 0xf1a17f).rw(FUNC(jaguar_state::serial_r), FUNC(jaguar_state::serial_w));
 	map(0xf1b000, 0xf1cfff).ram().share("dspram");
-	map(0xf1d000, 0xf1dfff).r(FUNC(jaguar_state::wave_rom_r)).region("waverom", 0);
+	map(0xf1d000, 0xf1dfff).r(FUNC(jaguar_state::wave_rom_r));
 }
 
 void jaguar_state::dsp_rom_map(address_map &map)

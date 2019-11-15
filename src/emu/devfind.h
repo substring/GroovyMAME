@@ -815,27 +815,25 @@ template <unsigned Count> using memory_bank_array_creator = object_array_finder<
 /// \brief Memory share creator
 ///
 /// Creates a memory share or picks up an existing one.
-class memory_share_creator : finder_base
+template<typename uX> class memory_share_creator : finder_base
 {
 public:
-	memory_share_creator(device_t &base, char const *tag, u8 width, size_t bytes, endianness_t endianness) :
-		finder_base(base, tag),
-		m_width(width),
-		m_bytes(bytes),
-		m_endianness(endianness)
-	{ }
-
+	memory_share_creator(device_t &base, char const *tag, size_t bytes, endianness_t endianness);
 	virtual ~memory_share_creator() = default;
 
-	/// \brief Get pointer to target bank object
-	/// \return Pointer to target bank object if found, or nullptr otherwise.
-	memory_share *target() const { return m_target; }
+	/// \brief Get pointer to the share object
+	/// \return Pointer to share object.
+	memory_share *share() const { return m_target; }
+
+	/// \brief Get pointer to the share object backing ram
+	/// \return Pointer to the ram.
+	uX *ptr() const { return reinterpret_cast<uX *>(m_target->ptr()); }
 
 	/// \brief Cast-to-pointer operator
 	///
 	/// Allows implicit casting to a pointer to the target bank object.
 	/// \return Pointer to target bank object
-	operator memory_share *() const { return m_target; }
+	operator uX *() const { return reinterpret_cast<uX *>(m_target->ptr()); }
 
 	/// \brief Pointer member access operator
 	///
