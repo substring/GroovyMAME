@@ -886,7 +886,7 @@ void m72_state::m82_map(address_map &map)
 	map(0xcc000, 0xccbff).rw(FUNC(m72_state::palette_r<0>), FUNC(m72_state::palette_w<0>)).share("paletteram1");
 	map(0xd0000, 0xd3fff).ram();   /* work RAM */
 	map(0xe0000, 0xe0001).w(FUNC(m72_state::irq_line_w));
-	map(0xe4000, 0xe4001).writeonly(); /* playfield enable? 1 during screen transitions, 0 otherwise */
+	map(0xe4000, 0xe4001).nopw(); /* playfield enable? 1 during screen transitions, 0 otherwise */
 	map(0xec000, 0xec000).w(FUNC(m72_state::dmaon_w));
 	map(0xffff0, 0xfffff).rom();
 }

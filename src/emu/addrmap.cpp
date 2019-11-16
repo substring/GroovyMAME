@@ -1154,13 +1154,10 @@ void address_map::map_validity_check(validity_checker &valid, int spacenum) cons
 			entry.m_rgnoffs = entry.m_addrstart;
 		}
 
-		// detect conflicts
+		// detect conflicts between region and share
 		if (entry.m_region && entry.m_share)
 			osd_printf_error("%s space memory map entry %X-%X has both .region() and .share()\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend);
-		if (entry.m_region && (entry.m_read.m_type == AMH_BANK || entry.m_write.m_type == AMH_BANK))
-			osd_printf_error("%s space memory map entry %X-%X has both .bank*() and .region()\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend);
-		if (entry.m_share && (entry.m_read.m_type == AMH_BANK || entry.m_write.m_type == AMH_BANK))
-			osd_printf_error("%s space memory map entry %X-%X has both .bank*() and .share()\n", spaceconfig.m_name, entry.m_addrstart, entry.m_addrend);
+
 
 		// Detect inaccesible memory.  Region automapping is handled before
 		if (entry.m_read.m_type == AMH_ROM && entry.m_write.m_type != AMH_RAM &&

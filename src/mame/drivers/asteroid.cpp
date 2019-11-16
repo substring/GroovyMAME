@@ -320,8 +320,8 @@ void asteroid_state::asteroid_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x01ff).ram();
-	map(0x0200, 0x02ff).bankrw("ram1").share("ram1");
-	map(0x0300, 0x03ff).bankrw("ram2").share("ram2");
+	map(0x0200, 0x02ff).bankrw("ram1");
+	map(0x0300, 0x03ff).bankrw("ram2");
 	map(0x2000, 0x2007).r(FUNC(asteroid_state::asteroid_IN0_r)).nopw();    /* IN0 */
 	map(0x2400, 0x2407).r(FUNC(asteroid_state::asteroid_IN1_r));    /* IN1 */
 	map(0x2800, 0x2803).r(FUNC(asteroid_state::asteroid_DSW1_r)).nopw();   /* DSW1 */
@@ -342,8 +342,8 @@ void asteroid_state::astdelux_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x01ff).ram();
-	map(0x0200, 0x02ff).bankrw("ram1").share("ram1");
-	map(0x0300, 0x03ff).bankrw("ram2").share("ram2");
+	map(0x0200, 0x02ff).bankrw("ram1");
+	map(0x0300, 0x03ff).bankrw("ram2");
 	map(0x2000, 0x2007).r(FUNC(asteroid_state::asteroid_IN0_r)).nopw();    /* IN0 */
 	map(0x2400, 0x2407).r(FUNC(asteroid_state::asteroid_IN1_r)).nopw();    /* IN1 */
 	map(0x2800, 0x2803).r(FUNC(asteroid_state::asteroid_DSW1_r));   /* DSW1 */

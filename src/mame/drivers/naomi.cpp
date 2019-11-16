@@ -1952,8 +1952,8 @@ WRITE64_MEMBER(atomiswave_state::aw_modem_w )
 void atomiswave_state::aw_map(address_map &map)
 {
 	/* Area 0 */
-	map(0x00000000, 0x0001ffff).rw(FUNC(atomiswave_state::aw_flash_r), FUNC(atomiswave_state::aw_flash_w)).region("awflash", 0);
-	map(0xa0000000, 0xa001ffff).rw(FUNC(atomiswave_state::aw_flash_r), FUNC(atomiswave_state::aw_flash_w)).region("awflash", 0);
+	map(0x00000000, 0x0001ffff).rw(FUNC(atomiswave_state::aw_flash_r), FUNC(atomiswave_state::aw_flash_w));
+	map(0xa0000000, 0xa001ffff).rw(FUNC(atomiswave_state::aw_flash_r), FUNC(atomiswave_state::aw_flash_w));
 
 	map(0x00200000, 0x0021ffff).ram().share("sram");     // battery backed up RAM
 	map(0x005f6800, 0x005f69ff).rw(FUNC(atomiswave_state::dc_sysctrl_r), FUNC(atomiswave_state::dc_sysctrl_w));
