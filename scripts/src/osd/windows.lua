@@ -45,6 +45,7 @@ function maintargetosdoptions(_target,_subtarget)
 		"psapi",
 		"ole32",
 		"shlwapi",
+		"dwmapi",
 	}
 end
 
@@ -170,6 +171,16 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "src/osd/windows/winmenu.cpp",
 		MAME_DIR .. "src/osd/windows/winmain.cpp",
 		MAME_DIR .. "src/osd/windows/winmain.h",
+		MAME_DIR .. "src/osd/windows/switchres_windows.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video.h",
+		MAME_DIR .. "src/osd/windows/custom_video_ati.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video_ati.h",
+		MAME_DIR .. "src/osd/windows/custom_video_adl.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video_adl.h",
+		MAME_DIR .. "src/osd/windows/custom_video_ati_family.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video_pstrip.cpp",
+		MAME_DIR .. "src/osd/windows/custom_video_pstrip.h",
 		MAME_DIR .. "src/osd/osdepend.h",
 		MAME_DIR .. "src/osd/modules/debugger/win/consolewininfo.cpp",
 		MAME_DIR .. "src/osd/modules/debugger/win/consolewininfo.h",
