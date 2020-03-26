@@ -2400,9 +2400,19 @@ if _OPTIONS["targetos"]=="linux" then
 		MAME_DIR .. "3rdparty/switchres/display_linux.h",
 		MAME_DIR .. "3rdparty/switchres/custom_video_xrandr.cpp",
 		MAME_DIR .. "3rdparty/switchres/custom_video_xrandr.h",
+		MAME_DIR .. "3rdparty/switchres/custom_video_drmkms.cpp",
+		MAME_DIR .. "3rdparty/switchres/custom_video_drmkms.h",
+	}
+
+	buildoptions {
+		backtick("pkg-config --cflags libdrm"),
 	}
 
 	links {
 		"Xrandr",
 	}
+
+	local str = backtick("pkg-config --libs libdrm")
+	addlibfromstring(str)
+	addoptionsfromstring(str)
 end
