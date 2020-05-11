@@ -1089,13 +1089,13 @@ void sound_manager::update(void *ptr, int param)
 		speaker.mix(&m_leftmix[0], &m_rightmix[0], m_samples_this_update, (m_muted & MUTE_REASON_SYSTEM));
 
 	// now downmix the final result
-	u32 finalmix_step = machine().video().speed_factor();
+	u32 finalmix_step = machine().video().speed_factor() * 100;
 	u32 finalmix_offset = 0;
 	s16 *finalmix = &m_finalmix[0];
 	int sample;
-	for (sample = m_finalmix_leftover; sample < m_samples_this_update * 1000; sample += finalmix_step)
+	for (sample = m_finalmix_leftover; sample < m_samples_this_update * 100000; sample += finalmix_step)
 	{
-		int sampindex = sample / 1000;
+		int sampindex = sample / 100000;
 
 		// clamp the left side
 		s32 samp = m_leftmix[sampindex];
@@ -1113,7 +1113,7 @@ void sound_manager::update(void *ptr, int param)
 			samp = 32767;
 		finalmix[finalmix_offset++] = samp;
 	}
-	m_finalmix_leftover = sample - m_samples_this_update * 1000;
+	m_finalmix_leftover = sample - m_samples_this_update * 100000;
 
 	// play the result
 	if (finalmix_offset > 0)
