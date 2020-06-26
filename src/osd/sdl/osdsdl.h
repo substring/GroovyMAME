@@ -22,7 +22,6 @@
 #define SDLOPTION_SCALEMODE             "scalemode"
 
 #define SDLOPTION_WAITVSYNC             "waitvsync"
-#define SDLOPTION_SYNCREFRESH           "syncrefresh"
 #define SDLOPTION_KEYMAP                "keymap"
 #define SDLOPTION_KEYMAP_FILE           "keymap_file"
 
@@ -143,6 +142,8 @@ public:
 	bool should_hide_mouse();
 	void process_events_buf();
 
+	void extract_video_config();
+
 	virtual sdl_options &options() override { return m_options; }
 
 protected:
@@ -152,7 +153,6 @@ protected:
 private:
 	virtual void osd_exit() override;
 
-	void extract_video_config();
 	void output_oslog(const char *buffer);
 
 	sdl_options &m_options;
