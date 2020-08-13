@@ -19,4 +19,4 @@ jobs:
     - name: install dependencies
       run: sudo apt-get install mingw-w64
     - name: build w64
-      run: make -j2 OPTIMIZE=3 SUBTARGET=tiny
+      run: make -j2 OPTIMIZE=3 SUBTARGET=tiny TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
