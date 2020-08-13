@@ -19,7 +19,7 @@ jobs:
     - name: install dependencies
       run: sudo apt-get install mingw-w64
     - name: build w64
-      run: make -j$(nproc) OPTIMIZE=3 SUBTARGET=tiny
+      run: make -j2 OPTIMIZE=3 SUBTARGET=tiny
    - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       with:
