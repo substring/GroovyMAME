@@ -25,4 +25,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: mametiny64.exe
+        name: binaries
+        path: mametiny64.exe
