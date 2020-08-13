@@ -21,9 +21,8 @@ jobs:
     - name: posix_model_x86_64
       run: sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - name: build w64
-      run: make -j2 OPTIMIZE=3 SUBTARGET=tiny TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
+      run: make -j$(nproc) OPTIMIZE=3 SUBTARGET=tiny TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       with:
         name: mametiny64.exe
-        path: ./  
