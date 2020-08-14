@@ -24,7 +24,7 @@ jobs:
       uses: actions/upload-artifact@v2.1.4
       with:
         name: binaries
-        path: *.exe
+        path: ./*.exe
   msys-windows-build:
     runs-on: windows-latest
     defaults:
