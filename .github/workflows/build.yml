@@ -24,7 +24,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: binaries
-        path: ./*.exe
+        path: |
+          ./*.exe
+          !./pngcmp.exe
+          !./regrep.exe
+          !./split.exe
+          !./srcclean.exe
   msys-windows-build:
     runs-on: windows-latest
     defaults:
