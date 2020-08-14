@@ -29,13 +29,14 @@ jobs:
         path: |
           ./*.exe
           COPYING
+          mame.ini
           uismall.bdf
-          whatsnew.txt
           artwork/
           bgfx/
           ctrlr/
           docs/
           hash/
+          hlsl/
           ini/
           language/
           plugins/
