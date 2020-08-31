@@ -79,7 +79,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: bash git make wget
+        install: bash git make wget python
     - shell: msys2 {0}
       run: |
         wget https://repo.mamedev.org/x86_64/mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
