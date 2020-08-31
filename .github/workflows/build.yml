@@ -90,5 +90,4 @@ jobs:
         export MINGW32=
     - uses: actions/checkout@v2
     - shell: msys2 {0}
-      run: - name: build w64
       run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny 
