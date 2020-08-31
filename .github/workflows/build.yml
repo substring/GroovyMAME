@@ -21,10 +21,8 @@ jobs:
         sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - name: build w64
       run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
-    - name: basic configuration
+    - name: Create MAME basic configuration
       run: wine64 mametiny64.exe -createconfig
-    - name: Create Release Asset
-      run: 7z a groovymame.7z mametiny64.exe      
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
@@ -59,6 +57,8 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
+    - name: Create Release Asset
+      run: 7z a groovymame.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
     - name: Upload Release Asset
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
