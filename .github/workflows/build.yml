@@ -54,7 +54,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        release_name: Release $GITHUB_SHA
         draft: false
         prerelease: false
     - name: Create Release Asset
@@ -86,8 +86,9 @@ jobs:
         pacman -U --noconfirm mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
         echo -e "[mame]\nInclude = /etc/pacman.d/mirrorlist.mame" >> /etc/pacman.conf
         pacman -Sy
-        export MINGW64=/mingw64
-        export MINGW32=
     - uses: actions/checkout@v2
     - shell: msys2 {0}
-      run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny 
+      run: |
+        export MINGW64=/mingw64
+        export MINGW32=
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny 
