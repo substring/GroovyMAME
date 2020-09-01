@@ -14,7 +14,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v2
-    - name: setup environment
+    - name: Setup environment
       run: |
         sudo apt update
         sudo apt-get install mingw-w64 wine64 p7zip
@@ -23,52 +23,13 @@ jobs:
       run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
     - name: Create MAME basic configuration
       run: wine64 mametiny64.exe -createconfig
+    - name: Create Release Asset
+      run: 7z a groovymame-mingw-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: binaries
-        path: |
-          ./*.exe
-          COPYING
-          mame.ini
-          uismall.bdf
-          artwork/
-          bgfx/
-          ctrlr/
-          docs/
-          hash/
-          hlsl/
-          ini/
-          language/
-          plugins/
-          roms/
-          samples/
-          !./pngcmp.exe
-          !./regrep.exe
-          !./split.exe
-          !./srcclean.exe
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release $GITHUB_SHA
-        draft: false
-        prerelease: false
-    - name: Create Release Asset
-      run: 7z a groovymame.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
-    - name: Upload Release Asset
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ./groovymame.7z
-        asset_name: groovymame.7z
-        asset_content_type: application/zip
+        name: binaries-win32-mingw
+        path: groovymame-mingw-win32-64bits.7z
   msys-windows-build:
     runs-on: windows-latest
     defaults:
@@ -79,7 +40,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: bash git make wget mingw-w64-x86_64-gcc mingw-w64-x86_64-python
+        install: bash git make wget mingw-w64-x86_64-gcc mingw-w64-x86_64-python p7zip
     - shell: msys2 {0}
       run: |
         wget https://repo.mamedev.org/x86_64/mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
@@ -91,4 +52,26 @@ jobs:
       run: |
         export MINGW64=/mingw64
         export MINGW32=
-        make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny 
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1 SUBTARGET=tiny
+    - shell: msys2 {0}
+      run: mametiny64.exe -createconfig
+    - shell: msys2 {0}
+      run: run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries-win32-msys
+        path: groovymame-msys-win32-64bits.7z
+  release:
+    needs: [mingw-windows-build, msys-windows-build]
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release $GITHUB_SHA
+          draft: false
+          prerelease: false
