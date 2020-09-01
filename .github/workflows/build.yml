@@ -63,6 +63,7 @@ jobs:
         name: binaries-win32-msys
         path: groovymame-msys-win32-64bits.7z
   release:
+    runs-on: ubuntu-latest
     needs: [mingw-windows-build, msys-windows-build]
     steps:
       - name: Create Release
