@@ -79,7 +79,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Asset groovymame-msys-win32-64bits.7z
-        id: upload-release-asset 
+        id: upload-release-asset-msys 
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,7 +89,7 @@ jobs:
           asset_name: groovymame-msys-win32-64bits.7z
           asset_content_type: application/zip
       - name: Upload Release Asset roovymame-mingw-win32-64bits.7z
-        id: upload-release-asset 
+        id: upload-release-asset-mingw
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
