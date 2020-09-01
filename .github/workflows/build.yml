@@ -41,7 +41,7 @@ jobs:
       with:
         update: true
         install: bash git make wget mingw-w64-x86_64-gcc mingw-w64-x86_64-python p7zip
-    - shell: msys2 {0}
+    - name: Setup MSYS2 for MAME
       run: |
         wget https://repo.mamedev.org/x86_64/mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
         pacman -U --noconfirm mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
@@ -84,17 +84,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./groovymame-msys-win32-64bits.7z
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
           asset_name: groovymame-msys-win32-64bits.7z
           asset_content_type: application/zip
-      - name: Upload Release Asset roovymame-mingw-win32-64bits.7z
+      - name: Upload Release Asset Groovymame-mingw-win32-64bits.7z
         id: upload-release-asset-mingw
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./roovymame-mingw-win32-64bits.7z
-          asset_name: roovymame-mingw-win32-64bits.7z
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
+          asset_name: groovymame-mingw-win32-64bits.7z
           asset_content_type: application/zip
