@@ -56,7 +56,7 @@ jobs:
     - shell: msys2 {0}
       run: mametiny64.exe -createconfig
     - shell: msys2 {0}
-      run: run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
+      run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
