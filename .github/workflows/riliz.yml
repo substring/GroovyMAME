@@ -1,0 +1,38 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Release experiments
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the groovymame0223 branch
+on: 
+  - push:
+    -tag: gm0???sr????
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  release:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Prepare data
+        run: |
+          tag="${GITHUB_REF#refs/*/}"
+          # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+          mamev="${tag:3:3}"
+          srv="${tag: -4}"
+          echo ::set-output name=mame_version::${mamev}
+          echo ::set-output name=switchres_version::${srv}
+       - name: Create Release
+         id: create_release
+         uses: actions/create-release@v1
+         env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           MAME_VERSION: ${{ steps.vars.outputs.mame_version }}
+           SWITCHRES_VERSION: ${{ steps.vars.outputs.switchres_version }}
+         with:
+           release_name: GroovyMame 0.${MAME_VERSION - Switchres 0.${SWITCHRES_VERSION}
+           draft: true
+           prerelease: false
