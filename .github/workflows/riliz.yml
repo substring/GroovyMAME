@@ -5,8 +5,9 @@ name: Release experiments
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the groovymame0223 branch
 on: 
-  - push:
-    -tag: gm0???sr????
+  push:
+    tags:
+      - gm0???sr????
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
