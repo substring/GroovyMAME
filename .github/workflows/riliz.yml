@@ -36,6 +36,6 @@ jobs:
           SWITCHRES_VERSION: ${{ steps.vars.outputs.switchres_version }}
           CURRENT_TAG: ${{ steps.vars.outputs.current_tag }}
         with:
-          name: GroovyMame 0.${{ MAME_VERSION }} - Switchres 0.${{ SWITCHRES_VERSION }}
+          name: GroovyMame 0.${{ steps.vars.outputs.mame_version }} - Switchres 0.${{ steps.vars.outputs.switchres_version }}
           draft: true
           prerelease: false
