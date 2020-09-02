@@ -7,7 +7,7 @@ name: Release experiments
 on: 
   push:
     tags:
-      - gm0???sr????
+      - gm0*sr*
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
