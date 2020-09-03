@@ -1,13 +1,16 @@
 # This is a basic workflow that is manually triggered
 
-name: Manual workflow
+name: Build GroovyMAME on a new tag
 
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
-on: [push]
+# Only build when a tag looks like gm0???sr????
+# It will, in the end, converted to the GM version + SR version
+# eg: gm0223sr017q
+on: 
+  push:
+    tags:
+      - gm0*sr*
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
+# GM build jobs : on linux + mingw, on windows + msys2
   mingw-windows-build:
     runs-on: ubuntu-latest
 
@@ -64,37 +67,34 @@ jobs:
         path: groovymame-msys-win32-64bits.7z
   release:
     runs-on: ubuntu-latest
-    needs: [mingw-windows-build, msys-windows-build]
+    needs: [mingw-windows-build, msys-windows-build, prepare_data]
     steps:
+      - name: Prepare data
+        id: prepare_data
+        run: |
+          tag="${GITHUB_REF#refs/*/}"
+          # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+          mamev="${tag:3:3}"
+          srv="${tag: -4}"
+          echo "GroovyMame: 0.$mamev"
+          echo "Switchres : 0.$srv"
+          echo "::set-output name=mame_version::${mamev}"
+          echo "::set-output name=switchres_version::${srv}"
+          echo "::set-output name=current_tag::${tag}"
       - name: Download Artifacts
         uses: actions/download-artifact@v2.0.5
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAME_VERSION: ${{ steps.prepare_data.outputs.mame_version }}
+          SWITCHRES_VERSION: ${{ steps.prepare_data.outputs.switchres_version }}
+          CURRENT_TAG: ${{ steps.prepare_data.outputs.current_tag }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release $GITHUB_SHA
-          draft: false
+          name: GroovyMame 0.${{ steps.prepare_data.outputs.mame_version }} - Switchres 0.${{ steps.prepare_data.outputs.switchres_version }}
+          draft: true
           prerelease: false
-      - name: Upload Release Asset groovymame-msys-win32-64bits.7z
-        id: upload-release-asset-msys 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
-          asset_name: groovymame-msys-win32-64bits.7z
-          asset_content_type: application/zip
-      - name: Upload Release Asset Groovymame-mingw-win32-64bits.7z
-        id: upload-release-asset-mingw
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
-          asset_name: groovymame-mingw-win32-64bits.7z
-          asset_content_type: application/zip
+          files: |
+            ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
+            ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
