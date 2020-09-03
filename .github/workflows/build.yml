@@ -68,7 +68,7 @@ jobs:
         path: groovymame-msys-win32-64bits.7z
   release:
     runs-on: ubuntu-latest
-    needs: [mingw-windows-build, msys-windows-build, prepare_data]
+    needs: [mingw-windows-build, msys-windows-build]
     steps:
       - name: Prepare data
         id: prepare_data
