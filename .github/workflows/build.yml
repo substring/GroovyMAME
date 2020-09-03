@@ -10,6 +10,7 @@ on:
     tags:
       - gm0*sr*
 
+jobs:
 # GM build jobs : on linux + mingw, on windows + msys2
   mingw-windows-build:
     runs-on: ubuntu-latest
