@@ -15,15 +15,21 @@ jobs:
   release:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.prepare_data.outputs.mamev }}
+      output2: ${{ steps.step2.outputs.test }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Prepare data
+        id: prepare_data
         run: |
           tag="${GITHUB_REF#refs/*/}"
           # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
           mamev="${tag:3:3}"
           srv="${tag: -4}"
+          echo "GroovyMame: 0.$mamev"
+          echo "Switchres : 0.$srv"
           echo "::set-output name=mame_version::${mamev}"
           echo "::set-output name=switchres_version::${srv}"
           echo "::set-output name=current_tag::${tag}"
@@ -32,10 +38,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAME_VERSION: ${{ steps.vars.outputs.mame_version }}
-          SWITCHRES_VERSION: ${{ steps.vars.outputs.switchres_version }}
-          CURRENT_TAG: ${{ steps.vars.outputs.current_tag }}
+          MAME_VERSION: ${{ steps.prepare_data.outputs.mame_version }}
+          SWITCHRES_VERSION: ${{ steps.prepare_data.outputs.switchres_version }}
+          CURRENT_TAG: ${{ steps.prepare_data.outputs.current_tag }}
         with:
-          name: GroovyMame 0.${{ steps.vars.outputs.mame_version }} - Switchres 0.${{ steps.vars.outputs.switchres_version }}
+          name: GroovyMame 0.${{ steps.prepare_data.outputs.mame_version }} - Switchres 0.${{ steps.prepare_data.outputs.switchres_version }}
           draft: true
           prerelease: false
