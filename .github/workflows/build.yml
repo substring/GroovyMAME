@@ -1,0 +1,125 @@
+# This is a basic workflow that is manually triggered
+
+name: Build GroovyMAME on a new tag
+
+# Only build when a tag looks like gm0???sr????
+# It will, in the end, converted to the GM version + SR version
+# eg: gm0223sr017q
+on: 
+  push:
+    tags:
+      - gm0*sr*
+
+jobs:
+# GM build jobs : on linux/mingw (corssbuild for windows), on windows/msys2 and linux
+  mingw-windows-build:
+    # Cross ompilation job, runs on a Ubuntu Linux runner and builds windows binaries
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup environment
+      run: |
+        sudo apt update
+        sudo apt-get install mingw-w64 wine64 p7zip
+        sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+    - name: Build GroovyMAME
+      run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
+    - name: Create MAME basic configuration
+      run: wine64 mame64.exe -createconfig
+    - name: Create Release Asset
+      run: 7z a groovymame-mingw-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries-win32-mingw
+        path: groovymame-mingw-win32-64bits.7z
+
+  msys-windows-build:
+    # Windows build in a MSYS2 environment on a Windows runner
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: bash git make wget mingw-w64-x86_64-gcc mingw-w64-x86_64-python p7zip
+    - name: Setup MSYS2 for MAME
+      run: |
+        wget https://repo.mamedev.org/x86_64/mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
+        pacman -U --noconfirm mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
+        echo -e "[mame]\nInclude = /etc/pacman.d/mirrorlist.mame" >> /etc/pacman.conf
+        pacman -Sy
+    - uses: actions/checkout@v2
+    - name: Build GroovyMAME
+      run: |
+        export MINGW64=/mingw64
+        export MINGW32=
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1
+    - name: Create MAME basic configuration
+      run: ./mame64.exe -createconfig
+    - shell: msys2 {0}
+      run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries-win32-msys
+        path: groovymame-msys-win32-64bits.7z
+
+  linux-build:
+    # Simple linux build on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup environment
+      run: |
+        sudo apt update
+        sudo apt-get install git build-essential python libsdl2-dev libsdl2-ttf-dev libfontconfig-dev qt5-default p7zip
+    - name: Build GroovyMAME
+      run: |
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1
+        mv mame64 groovymame
+    - name: Create Release Asset
+      run: 7z a groovymame-linux-64bits.7z groovymame
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries-linux-gcc
+        path: groovymame-linux-64bits.7z
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [mingw-windows-build, msys-windows-build, linux-build]
+    steps:
+      - name: Prepare data
+        id: prepare_data
+        run: |
+          tag="${GITHUB_REF#refs/*/}"
+          # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+          mamev="${tag:3:3}"
+          srv="${tag: -4}"
+          echo "GroovyMame: 0.$mamev"
+          echo "Switchres : 0.$srv"
+          echo "::set-output name=mame_version::${mamev}"
+          echo "::set-output name=switchres_version::${srv}"
+          echo "::set-output name=current_tag::${tag}"
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2.0.5
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAME_VERSION: ${{ steps.prepare_data.outputs.mame_version }}
+          SWITCHRES_VERSION: ${{ steps.prepare_data.outputs.switchres_version }}
+          CURRENT_TAG: ${{ steps.prepare_data.outputs.current_tag }}
+        with:
+          name: GroovyMame 0.${{ steps.prepare_data.outputs.mame_version }} - Switchres 0.${{ steps.prepare_data.outputs.switchres_version }}
+          draft: true
+          prerelease: false
+          files: |
+            ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
+            ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
+            ./binaries-linux-gcc/groovymame-linux-64bits.7z
