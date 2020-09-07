@@ -25,7 +25,7 @@ jobs:
     - name: Build GroovyMAME
       run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
     - name: Create MAME basic configuration
-      run: wine64 mametiny64.exe -createconfig
+      run: wine64 mame64.exe -createconfig
     - name: Create Release Asset
       run: 7z a groovymame-mingw-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
     - name: Upload artifact
@@ -59,7 +59,7 @@ jobs:
         export MINGW32=
         make -j$(nproc) OPTIMIZE=3 TOOLS=1
     - name: Create MAME basic configuration
-      run: ./mame.exe -createconfig
+      run: ./mame64.exe -createconfig
     - shell: msys2 {0}
       run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
     - name: Upload artifact
