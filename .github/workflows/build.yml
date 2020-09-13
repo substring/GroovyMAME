@@ -23,7 +23,7 @@ jobs:
         sudo apt-get install mingw-w64 wine64 p7zip
         sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - name: Build GroovyMAME
-      run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
+      run: make -j$(nproc) OPTIMIZE=3 TOOLS=1 SYMBOLS=0 TARGETOS=windows PTR64=1 OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
     - name: Create MAME basic configuration
       run: wine64 mame64.exe -createconfig
     - name: Create Release Asset
@@ -57,7 +57,7 @@ jobs:
       run: |
         export MINGW64=/mingw64
         export MINGW32=
-        make -j$(nproc) OPTIMIZE=3 TOOLS=1
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1 SYMBOLS=0
     - name: Create MAME basic configuration
       run: ./mame64.exe -createconfig
     - shell: msys2 {0}
@@ -79,7 +79,7 @@ jobs:
         sudo apt-get install git build-essential python libsdl2-dev libsdl2-ttf-dev libfontconfig-dev qt5-default p7zip
     - name: Build GroovyMAME
       run: |
-        make -j$(nproc) OPTIMIZE=3 TOOLS=1
+        make -j$(nproc) OPTIMIZE=3 TOOLS=1 SYMBOLS=0
         mv mame64 groovymame
     - name: Create Release Asset
       run: 7z a groovymame-linux-64bits.7z groovymame
