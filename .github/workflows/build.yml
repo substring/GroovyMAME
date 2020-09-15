@@ -15,6 +15,7 @@ jobs:
 #  mingw-windows-build:
     # Cross ompilation job, runs on a Ubuntu Linux runner and builds windows binaries
     # Disabled for now because of https://github.com/mamedev/mame/issues/7240
+    # Take care if you enable this job again, others must have changed since
 #    runs-on: ubuntu-latest
 #    steps:
 #    - uses: actions/checkout@v2
@@ -73,13 +74,17 @@ jobs:
         ./mame64.exe -createconfig
     - name: Create Release Asset
       run: |
+        tag="${GITHUB_REF#refs/*/}"
+        # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+        mamev="${tag:3:3}"
+        srv="${tag: -4}"
         cd build/release/x64/Release/mame
-        7z a groovymame-msys-win32-64bits.7z *
+        7z a "groovymame64_0${mamev}.0${srv}_win-7-8-10.7z" *
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: binaries-win32-msys
-        path: build/release/x64/Release/mame/groovymame-msys-win32-64bits.7z
+        path: build/release/x64/Release/mame/groovymame64*.7z
 
   linux-build:
     # Simple linux build on ubuntu
@@ -94,17 +99,20 @@ jobs:
       run: |
         make -j$(nproc) TARGET=mame TOOLS=1 SEPARATE_BIN=1 PTR64=1 OPTIMIZE=3 SYMBOLS=0 SYMLEVEL=1 REGENIE=1
         make -f dist.mak PTR64=1
-        cp -rf plugins build/release/x64/Release/mame/
     - name: Create Release Asset
       run: |
+        tag="${GITHUB_REF#refs/*/}"
+        # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+        mamev="${tag:3:3}"
+        srv="${tag: -4}"
         cd build/release/x64/Release/mame
         mv mame64 groovymame
-        7z a groovymame-linux-64bits.7z groovymame
+        tar cvjf "groovymame64_0${mamev}.0${srv}_linux.tar.bz2" groovymame
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: binaries-linux-gcc
-        path: build/release/x64/Release/mame/groovymame-linux-64bits.7z
+        path: build/release/x64/Release/mame/groovymame64-*.tar.bz2
 
   release:
     runs-on: ubuntu-latest
@@ -139,5 +147,5 @@ jobs:
           prerelease: false
           files: |
             ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
-            ./binaries-linux-gcc/groovymame-linux-64bits.7z
+            ./binaries-linux-gcc/groovymame64-*.tar.bz2
 #            ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
