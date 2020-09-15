@@ -25,7 +25,7 @@ jobs:
     - name: Build GroovyMAME
       run: |
         make -j$(nproc) TARGET=mame TOOLS=1 SEPARATE_BIN=1 PTR64=1 OPTIMIZE=3 SYMBOLS=0 SYMLEVEL=1 REGENIE=1 TARGETOS=windows OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
-        make -f dist.mak PTR64=1
+        make -f dist.mak PTR64=1 TARGETOS=windows
     - name: Create MAME basic configuration
       run: |
         cd build/release/x64/Release/mame
@@ -64,15 +64,20 @@ jobs:
         export MINGW64=/mingw64
         export MINGW32=
         make -j$(nproc) TARGET=mame TOOLS=1 SEPARATE_BIN=1 PTR64=1 OPTIMIZE=3 SYMBOLS=0 SYMLEVEL=1 REGENIE=1
+        make -f dist.mak PTR64=1
     - name: Create MAME basic configuration
-      run: ./mame64.exe -createconfig
+      run: |
+        cd build/release/x64/Release/mame
+        ./mame64.exe -createconfig
     - name: Create Release Asset
-      run: 7z a groovymame-msys-win32-64bits.7z *.exe COPYING mame.ini uismall.bdf artwork/ bgfx/ ctrlr/ docs/ hash/ hlsl/ ini/ language/ plugins/ roms/ samples/ -x!./pngcmp.exe -x!./regrep.exe -x!./split.exe -x!./srcclean.exe
+      run: |
+        cd build/release/x64/Release/mame
+        7z a groovymame-msys-win32-64bits.7z *
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: binaries-win32-msys
-        path: groovymame-msys-win32-64bits.7z
+        path: build/release/x64/Release/mame/groovymame-msys-win32-64bits.7z
 
   linux-build:
     # Simple linux build on ubuntu
