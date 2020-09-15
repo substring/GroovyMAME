@@ -12,7 +12,7 @@ on:
 
 jobs:
 # GM build jobs : on linux/mingw (corssbuild for windows), on windows/msys2 and linux
-  mingw-windows-build:
+#  mingw-windows-build:
     # Cross ompilation job, runs on a Ubuntu Linux runner and builds windows binaries
     # Disabled for now because of https://github.com/mamedev/mame/issues/7240
 #    runs-on: ubuntu-latest
