@@ -22,20 +22,26 @@ jobs:
 #    - name: Setup environment
 #      run: |
 #        sudo apt update
-#        sudo apt-get install mingw-w64 wine64 p7zip
+#        sudo apt-get install mingw-w64 wine64 p7zip sed
 #        sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
 #    - name: Build GroovyMAME
 #      run: |
+#        sed -i 's/ifeq (\$(OS),windows)/ifeq (\$(TARGETOS),windows)/' dist.mak
 #        make -j$(nproc) TARGET=mame TOOLS=1 SEPARATE_BIN=1 PTR64=1 OPTIMIZE=3 SYMBOLS=0 SYMLEVEL=1 REGENIE=1 TARGETOS=windows OVERRIDE_CC=x86_64-w64-mingw32-gcc OVERRIDE_CXX=x86_64-w64-mingw32-g++ OVERRIDE_LD=x86_64-w64-mingw32-ld MINGW64=/usr
 #        make -f dist.mak PTR64=1 TARGETOS=windows
+#        cp -rf plugins build/release/x64/Release/mame/
 #    - name: Create MAME basic configuration
 #      run: |
 #        cd build/release/x64/Release/mame
 #        wine64 mame64.exe -createconfig
 #    - name: Create Release Asset
 #      run: |
+#        tag="${GITHUB_REF#refs/*/}"
+#        # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
+#        mamev="${tag:3:3}"
+#        srv="${tag: -4}"
 #        cd build/release/x64/Release/mame
-#        7z a groovymame-mingw-win32-64bits.7z *
+#        7z a "groovymame64_0${mamev}.0${srv}_win-7-8-10.7z" *
 #    - name: Upload artifact
 #      uses: actions/upload-artifact@v2
 #      with:
