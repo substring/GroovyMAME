@@ -112,7 +112,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: binaries-linux-gcc
-        path: build/release/x64/Release/mame/groovymame64-*.tar.bz2
+        path: build/release/x64/Release/mame/groovymame64*.tar.bz2
 
   release:
     runs-on: ubuntu-latest
@@ -146,6 +146,6 @@ jobs:
           draft: true
           prerelease: false
           files: |
-            ./binaries-win32-msys/groovymame-msys-win32-64bits.7z
-            ./binaries-linux-gcc/groovymame64-*.tar.bz2
+            ./binaries-win32-msys/groovymame64_*.7z
+            ./binaries-linux-gcc/groovymame64_*.tar.bz2
 #            ./binaries-win32-mingw/groovymame-mingw-win32-64bits.7z
