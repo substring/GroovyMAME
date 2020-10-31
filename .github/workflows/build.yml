@@ -85,7 +85,8 @@ jobs:
         mamev="${tag:3:3}"
         srv="${tag: -4}"
         cd build/release/x64/Release/
-        mv mame "groovymame64_0﻿﻿${mamev}﻿﻿.﻿﻿${srv}﻿﻿_win-7-8-10"
+        mv mame "groovymame64_0${mamev}.${srv}_win-7-8-10"
+        ls -l
         7z a "groovymame64_0${mamev}.${srv}_win-7-8-10.7z" "groovymame64_0${mamev}.${srv}_win-7-8-10"
     - name: Upload artifact
       uses: actions/upload-artifact@v2
