@@ -73,7 +73,7 @@ jobs:
         export MINGW32=
         make -j$(nproc) TARGET=mame TOOLS=1 SEPARATE_BIN=1 PTR64=1 OPTIMIZE=3 SYMBOLS=0 SYMLEVEL=1 REGENIE=1
         make -f dist.mak PTR64=1
-        cp -rf plugins build/release/x64/Release/mame/
+        cp -rf artwork bgfx hlsl plugins samples build/release/x64/Release/mame/
     - name: Create MAME basic configuration
       run: |
         cd build/release/x64/Release/mame
@@ -84,8 +84,9 @@ jobs:
         # Now tag should be in the shape of gm0XXXsrYYYY, ex: gm0223sr017q
         mamev="${tag:3:3}"
         srv="${tag: -4}"
-        cd build/release/x64/Release/mame
-        7z a "groovymame64_0${mamev}.0${srv}_win-7-8-10.7z" *
+        cd build/release/x64/Release/
+        mv mame "groovymame64_0﻿﻿${mamev}﻿﻿.﻿﻿${srv}﻿﻿_win-7-8-10"
+        7z a "groovymame64_0${mamev}.${srv}_win-7-8-10.7z" "groovymame64_0${mamev}.${srv}_win-7-8-10"
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
