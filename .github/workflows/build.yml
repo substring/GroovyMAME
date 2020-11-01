@@ -92,7 +92,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: binaries-win32-msys
-        path: build/release/x64/Release/mame/groovymame64*.7z
+        path: build/release/x64/Release/groovymame64*.7z
 
   linux-build:
     # Simple linux build on ubuntu
