@@ -311,6 +311,12 @@ void libretro_state::load_content()
 	m_library_name = info.library_name ? info.library_name : "libretro";
 	osd_printf_info("libretro: %s %s\n", m_library_name, info.library_version ? info.library_version : "");
 
+	// show the core instead of this driver in the system information
+	std::string description = m_library_name;
+	if (info.library_version && *info.library_version)
+		description.append(" ").append(info.library_version);
+	machine().set_system_description(std::move(description), "libretro core", "");
+
 	// core options are known by now, apply the user overrides
 	load_option_overrides();
 

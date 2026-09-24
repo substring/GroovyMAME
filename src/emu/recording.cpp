@@ -132,7 +132,7 @@ movie_recording::ptr movie_recording::create(running_machine &machine, screen_de
 		{
 			std::map<std::string, std::string> info_fields;
 			info_fields["Software"] = std::string(emulator_info::get_appname()).append(" ").append(emulator_info::get_build_version());
-			info_fields["System"] = std::string(machine.system().manufacturer).append(" ").append(machine.system().type.fullname());
+			info_fields["System"] = std::string(machine.system_manufacturer()).append(" ").append(machine.system_description());
 
 			auto mng_recording = std::make_unique<mng_movie_recording>(screen, std::move(info_fields));
 			if (mng_recording->initialize(std::move(file), snap_bitmap))

@@ -116,6 +116,14 @@ public:
 	const machine_config &config() const { return m_config; }
 	device_t &root_device() const { return m_config.root_device(); }
 	const game_driver &system() const { return m_system; }
+
+	// description of the running system: drivers hosting an external emulator
+	// (e.g. a libretro core) can replace the static one once it is known
+	void set_system_description(std::string description, std::string manufacturer, std::string year) { m_description = std::move(description); m_manufacturer = std::move(manufacturer); m_year = std::move(year); }
+	bool system_description_overridden() const { return !m_description.empty(); }
+	const char *system_description() const { return m_description.empty() ? m_system.type.fullname() : m_description.c_str(); }
+	const char *system_manufacturer() const { return m_description.empty() ? m_system.manufacturer : m_manufacturer.c_str(); }
+	const char *system_year() const { return m_description.empty() ? m_system.year : m_year.c_str(); }
 	osd_interface &osd() const;
 	machine_manager &manager() const { return m_manager; }
 	device_scheduler &scheduler() { return m_scheduler; }
@@ -266,6 +274,9 @@ private:
 	// internal state
 	const machine_config &  m_config;               // reference to the constructed machine_config
 	const game_driver &     m_system;               // reference to the definition of the game machine
+	std::string             m_description;          // run time replacements for the system description
+	std::string             m_manufacturer;
+	std::string             m_year;
 	machine_manager &       m_manager;              // reference to machine manager system
 	// managers
 	std::unique_ptr<render_manager> m_render;          // internal data from render.cpp

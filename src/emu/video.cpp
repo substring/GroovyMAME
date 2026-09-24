@@ -364,7 +364,7 @@ void video_manager::save_snapshot(screen_device *screen, util::core_file &file)
 
 	// add two text entries describing the image
 	std::string text1 = std::string(emulator_info::get_appname()).append(" ").append(emulator_info::get_build_version());
-	std::string text2 = std::string(machine().system().manufacturer).append(" ").append(machine().system().type.fullname());
+	std::string text2 = std::string(machine().system_manufacturer()).append(" ").append(machine().system_description());
 	util::png_info pnginfo;
 	pnginfo.add_text("Software", text1);
 	pnginfo.add_text("System", text2);

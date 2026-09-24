@@ -1948,7 +1948,7 @@ void screen_device::finalize_burnin()
 
 		// add two text entries describing the image
 		pnginfo.add_text("Software", util::string_format("%s %s", emulator_info::get_appname(), emulator_info::get_build_version()));
-		pnginfo.add_text("System", util::string_format("%s %s", machine().system().manufacturer, machine().system().type.fullname()));
+		pnginfo.add_text("System", util::string_format("%s %s", machine().system_manufacturer(), machine().system_description()));
 
 		// now do the actual work
 		util::png_write_bitmap(file, &pnginfo, finalmap, 0, nullptr);
