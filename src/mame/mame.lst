@@ -26728,6 +26728,9 @@ free120
 free200
 free220
 
+@source:libretro/libretro.cpp
+libretro
+
 @source:linn/linndrum.cpp
 linndrum
 

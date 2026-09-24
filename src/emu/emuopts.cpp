@@ -238,6 +238,11 @@ const options_entry emu_options::s_option_entries[] =
 	{ OPTION_HTTP_PORT,                                  "8080",      core_options::option_type::INTEGER,    "HTTP server port" },
 	{ OPTION_HTTP_ROOT,                                  "web",       core_options::option_type::PATH,       "HTTP server document root" },
 
+	{ nullptr,                                           nullptr,     core_options::option_type::HEADER,     "LIBRETRO OPTIONS" },
+	{ OPTION_LIBRETRO_CORE,                              "",          core_options::option_type::PATH,       "libretro core run by the libretro system" },
+	{ OPTION_LIBRETRO_CONTENT,                           "",          core_options::option_type::PATH,       "content (game) loaded by the libretro core" },
+	{ OPTION_LIBRETRO_SYSTEM_PATH,                       "libretro",  core_options::option_type::PATH,       "libretro system directory (BIOS files, <core name>.opt core options)" },
+
 	{ nullptr }
 };
 
