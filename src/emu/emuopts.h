@@ -214,9 +214,9 @@
 #define OPTION_HTTP_PORT            "http_port"
 #define OPTION_HTTP_ROOT            "http_root"
 
+#define OPTION_LIBRETROPATH         "libretropath"
 #define OPTION_LIBRETRO_CORE        "libretro_core"
-#define OPTION_LIBRETRO_CONTENT     "libretro_content"
-#define OPTION_LIBRETRO_SYSTEM_PATH "libretro_system_path"
+#define OPTION_LIBRETRO_SYSTEM_DIRECTORY "libretro_system_directory"
 
 //**************************************************************************
 //  TYPE DEFINITIONS
@@ -517,9 +517,9 @@ public:
 	const char *http_root() const { return value(OPTION_HTTP_ROOT); }
 
 	// libretro options
+	const char *libretro_path() const { return value(OPTION_LIBRETROPATH); }
 	const char *libretro_core() const { return value(OPTION_LIBRETRO_CORE); }
-	const char *libretro_content() const { return value(OPTION_LIBRETRO_CONTENT); }
-	const char *libretro_system_path() const { return value(OPTION_LIBRETRO_SYSTEM_PATH); }
+	const char *libretro_system_directory() const { return value(OPTION_LIBRETRO_SYSTEM_DIRECTORY); }
 
 	// slots and devices - the values for these are stored outside of the core_options structure
 	const ::slot_option &slot_option(std::string_view device_name) const;
