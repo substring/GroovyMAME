@@ -217,6 +217,8 @@
 #define OPTION_LIBRETROPATH         "libretropath"
 #define OPTION_LIBRETRO_CORE        "libretro_core"
 #define OPTION_LIBRETRO_SYSTEM_DIRECTORY "libretro_system_directory"
+#define OPTION_LIBRETRO_GL_DEVICE   "libretro_gl_device"
+#define OPTION_LIBRETRO_GL_READBACK "libretro_gl_readback"
 
 //**************************************************************************
 //  TYPE DEFINITIONS
@@ -520,6 +522,8 @@ public:
 	const char *libretro_path() const { return value(OPTION_LIBRETROPATH); }
 	const char *libretro_core() const { return value(OPTION_LIBRETRO_CORE); }
 	const char *libretro_system_directory() const { return value(OPTION_LIBRETRO_SYSTEM_DIRECTORY); }
+	const char *libretro_gl_device() const { return value(OPTION_LIBRETRO_GL_DEVICE); }
+	const char *libretro_gl_readback() const { return value(OPTION_LIBRETRO_GL_READBACK); }
 
 	// slots and devices - the values for these are stored outside of the core_options structure
 	const ::slot_option &slot_option(std::string_view device_name) const;

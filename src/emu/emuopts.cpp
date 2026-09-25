@@ -242,6 +242,8 @@ const options_entry emu_options::s_option_entries[] =
 	{ OPTION_LIBRETROPATH,                               "libretro",  core_options::option_type::MULTIPATH,  "path to libretro cores" },
 	{ OPTION_LIBRETRO_CORE ";L",                         "",          core_options::option_type::PATH,       "libretro core run by the libretro system: full path, file name or core name searched in libretropath" },
 	{ OPTION_LIBRETRO_SYSTEM_DIRECTORY,                  "libretro/system", core_options::option_type::PATH, "system directory given to libretro cores (BIOS files)" },
+	{ OPTION_LIBRETRO_GL_DEVICE,                         "",          core_options::option_type::STRING,     "GPU rendering the hardware rendered libretro cores, as a DRM render node (e.g. /dev/dri/renderD128), empty for the default one" },
+	{ OPTION_LIBRETRO_GL_READBACK,                       "auto",      core_options::option_type::STRING,     "readback of hardware rendered frames: auto (best available), persistent, pbo or direct" },
 
 	{ nullptr }
 };

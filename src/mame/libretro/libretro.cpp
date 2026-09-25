@@ -8,10 +8,13 @@
     switchres, frame delay and vsync handling apply to it like to any
     other system.
 
-    Only software rendered cores are supported: the core hands a CPU
-    framebuffer through retro_video_refresh, and hardware rendering
-    requests (RETRO_ENVIRONMENT_SET_HW_RENDER) are refused, so no
-    OpenGL or Vulkan context is ever shared with the core.
+    Software rendered cores hand a CPU framebuffer to retro_video_refresh.
+    Hardware rendered OpenGL cores get an OpenGL context of their own
+    (libretro_gl.cpp) and their frame is read back in the same frame, so
+    both kinds work with every video backend, including kmsraw and
+    MiSTer, and no context is shared with the MAME renderer. Vulkan and
+    Direct3D cores aren't supported yet, nor hardware rendering on
+    Windows and macOS.
 
     Usage:
       groovymame libretro -L genesis_plus_gx -cart sonic.md
@@ -26,6 +29,10 @@
       -libretropath           search path for the cores
       -libretro_system_directory
                               system directory given to the core (BIOS)
+      -libretro_gl_device     GPU rendering hardware rendered cores, as a
+                              DRM render node (/dev/dri/renderD128)
+      -libretro_gl_readback   auto, persistent, pbo or direct, to compare
+                              the readback methods (timings with -verbose)
       -cfg_directory          core options, in libretro/<core name>.opt
                               (RetroArch format: key = "value"), written
                               when they are changed in the Core Options
@@ -51,6 +58,7 @@
 #include "modules/lib/osdlib.h"
 
 #include "libretro/libretro.h"
+#include "libretro_gl.h"
 
 #include <algorithm>
 #include <cstdarg>
@@ -252,6 +260,8 @@ private:
 
 	static bool env_callback(unsigned cmd, void *data) { return s_instance->environment(cmd, data); }
 	static void video_callback(const void *data, unsigned width, unsigned height, size_t pitch) { s_instance->video_refresh(data, width, height, pitch); }
+	static uintptr_t hw_framebuffer_callback() { return s_instance->m_gl ? s_instance->m_gl->framebuffer() : 0; }
+	static retro_proc_address_t hw_proc_address_callback(const char *symbol) { return s_instance->m_gl ? s_instance->m_gl->proc_address(symbol) : nullptr; }
 	static void audio_callback(int16_t left, int16_t right) { int16_t const frame[2] = { left, right }; s_instance->m_sound->push(frame, 1); }
 	static size_t audio_batch_callback(const int16_t *data, size_t frames) { s_instance->m_sound->push(data, frames); return frames; }
 	static void input_poll_callback() { }
@@ -311,6 +321,12 @@ private:
 
 	retro_pixel_format       m_pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
 	bitmap_rgb32             m_frame;
+	const bitmap_rgb32      *m_display = nullptr;      // frame to show, software or read back
+
+	// hardware rendering
+	bool                     m_hw_requested = false;
+	retro_hw_render_callback m_hw = { };
+	std::unique_ptr<libretro_gl> m_gl;
 	int                      m_width = 0;
 	int                      m_height = 0;
 	double                   m_fps = 60.0;
@@ -636,11 +652,29 @@ bool libretro_state::environment(unsigned cmd, void *data)
 	}
 
 	case RETRO_ENVIRONMENT_SET_HW_RENDER:
-		osd_printf_error("libretro: hardware rendered cores are not supported, only software rendering is\n");
-		return false;
+	{
+		auto *hw = reinterpret_cast<retro_hw_render_callback *>(data);
+		if (!libretro_gl::supports(hw->context_type))
+		{
+			osd_printf_error("libretro: the core asks for a hardware rendering context that isn't supported (type %u)\n", unsigned(hw->context_type));
+			return false;
+		}
+		hw->get_current_framebuffer = hw_framebuffer_callback;
+		hw->get_proc_address = hw_proc_address_callback;
+		m_hw = *hw;
+		m_hw_requested = true;
+		return true;
+	}
 
 	case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER:
-		return false;
+		if (!libretro_gl::supports(RETRO_HW_CONTEXT_OPENGL))
+			return false;
+		*reinterpret_cast<unsigned *>(data) = RETRO_HW_CONTEXT_OPENGL;
+		return true;
+
+	case RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT:
+		// the context is never shared with anything else anyway
+		return true;
 
 	case RETRO_ENVIRONMENT_GET_CAN_DUPE:
 		*reinterpret_cast<bool *>(data) = true;
@@ -831,6 +865,9 @@ void libretro_state::apply_geometry(const retro_game_geometry &geometry)
 	if (max_width > m_frame.width() || max_height > m_frame.height())
 		m_frame.resize(std::max(max_width, m_frame.width()), std::max(max_height, m_frame.height()));
 
+	if (m_gl && !m_gl->resize(max_width, max_height))
+		osd_printf_error("libretro: can't resize the OpenGL framebuffer: %s\n", m_gl->error());
+
 	if (geometry.base_width && geometry.base_height)
 		configure_screen(geometry.base_width, geometry.base_height);
 }
@@ -849,6 +886,18 @@ void libretro_state::video_refresh(const void *data, unsigned width, unsigned he
 	// duplicated frame: keep the previous one
 	if (!data || !width || !height)
 		return;
+
+	// hardware rendered frame, read back in this frame
+	if (data == RETRO_HW_FRAME_BUFFER_VALID)
+	{
+		if (!m_gl)
+			return;
+		if (int(width) != m_width || int(height) != m_height)
+			configure_screen(width, height);
+		m_display = &m_gl->readback(width, height, m_hw.bottom_left_origin);
+		return;
+	}
+	m_display = &m_frame;
 
 	if (int(width) > m_frame.width() || int(height) > m_frame.height())
 		m_frame.resize(std::max<int>(width, m_frame.width()), std::max<int>(height, m_frame.height()));
@@ -890,14 +939,18 @@ void libretro_state::video_refresh(const void *data, unsigned width, unsigned he
 void libretro_state::vblank(int state)
 {
 	if (state && m_loaded)
+	{
+		libretro_gl_scope scope(m_gl.get());
 		m_api.run();
+	}
 }
 
 u32 libretro_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
+	const bitmap_rgb32 &frame = m_display ? *m_display : m_frame;
 	rectangle clip = cliprect;
-	clip &= rectangle(0, m_frame.width() - 1, 0, m_frame.height() - 1);
-	copybitmap(bitmap, m_frame, 0, 0, 0, 0, clip);
+	clip &= rectangle(0, frame.width() - 1, 0, frame.height() - 1);
+	copybitmap(bitmap, frame, 0, 0, 0, 0, clip);
 	return 0;
 }
 
@@ -1004,10 +1057,24 @@ void libretro_state::machine_start()
 	m_api.get_system_av_info(&av);
 	apply_av_info(av);
 
+	// hardware rendered core: its context, then let it create its resources
+	if (m_hw_requested)
+	{
+		m_gl = std::make_unique<libretro_gl>();
+		if (!m_gl->create(m_hw, std::max(av.geometry.max_width, av.geometry.base_width), std::max(av.geometry.max_height, av.geometry.base_height), options.libretro_gl_device(), options.libretro_gl_readback()))
+			throw emu_fatalerror("libretro: can't create the OpenGL context for %s: %s\n", m_library_name, m_gl->error());
+		osd_printf_info("libretro: hardware rendering on %s\n", m_gl->description());
+
+		libretro_gl_scope scope(m_gl.get());
+		if (m_hw.context_reset)
+			m_hw.context_reset();
+	}
+
 	load_save_ram();
 	machine().add_notifier(MACHINE_NOTIFY_EXIT, machine_notify_delegate(&libretro_state::machine_exit, this));
 
 	// MAME save states wrap the core's own serialization
+	libretro_gl_scope scope(m_gl.get());
 	size_t const state_size = m_api.serialize_size();
 	if (state_size)
 	{
@@ -1020,11 +1087,13 @@ void libretro_state::machine_start()
 
 void libretro_state::state_presave()
 {
+	libretro_gl_scope scope(m_gl.get());
 	m_api.serialize(m_state.data(), m_state.size());
 }
 
 void libretro_state::state_postload()
 {
+	libretro_gl_scope scope(m_gl.get());
 	m_api.unserialize(m_state.data(), m_state.size());
 }
 
@@ -1032,7 +1101,10 @@ void libretro_state::machine_reset()
 {
 	// the core starts in its reset state, only forward later resets
 	if (std::exchange(m_started, true))
+	{
+		libretro_gl_scope scope(m_gl.get());
 		m_api.reset();
+	}
 }
 
 void libretro_state::machine_exit()
@@ -1041,8 +1113,14 @@ void libretro_state::machine_exit()
 
 	m_loaded = false;
 	machine().set_runtime_option_provider(nullptr);
-	m_api.unload_game();
-	m_api.deinit();
+	{
+		libretro_gl_scope scope(m_gl.get());
+		m_api.unload_game();
+		if (m_gl && m_hw.context_destroy)
+			m_hw.context_destroy();
+		m_api.deinit();
+	}
+	m_gl.reset();
 	s_instance = nullptr;
 }
 
