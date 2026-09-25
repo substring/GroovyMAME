@@ -28,7 +28,7 @@ packages).
 | `-libretropath` | `libretro` | Search path for the cores (several directories separated by `;`) |
 | `-cart`, `-cartridge` | | The content (ROM, GDI, CHD...), with the extensions the core accepts |
 | `-libretro_system_directory` | `libretro/system` | System directory given to the core: BIOS files, some cores also write there |
-| `-libretro_gl_device` | default GPU | GPU rendering hardware rendered cores, as a DRM render node, e.g. `/dev/dri/renderD129` |
+| `-libretro_gl_device` | default GPU | GPU rendering hardware rendered cores, as a DRM render node, e.g. `/dev/dri/renderD129` (Linux only) |
 | `-libretro_gl_readback` | `auto` | Readback of hardware rendered frames: `persistent`, `pbo` or `direct`, to compare them |
 
 `-verbose` logs the core, its geometry and timing, the GPU used and the
@@ -75,15 +75,17 @@ so the system directory must be writable.
 ## Hardware rendering
 
 OpenGL cores (compatibility, core profile, OpenGL ES 2/3) get an OpenGL
-context owned by the driver, created with EGL on a DRM render node, so it
-works under X11, Wayland and the KMS console. The frame is read back into a
+context owned by the driver: on Linux it's created with EGL on a DRM render
+node, so it works under X11, Wayland and the KMS console; on Windows with
+WGL on a hidden window. The frame is read back into a
 bitmap within the same frame (no added frame of latency), so hardware
 rendered cores work with every video backend, including `kmsraw` and
-MiSTer. The GPU rendering the core can differ from the one driving the
-display (`-libretro_gl_device`).
+MiSTer. On Linux, the GPU rendering the core can differ from the one
+driving the display (`-libretro_gl_device`); on Windows the default GPU is
+used.
 
 Not supported yet: Vulkan and Direct3D cores, hardware rendering on
-Windows and macOS.
+macOS.
 
 ## Notes
 

@@ -14,7 +14,7 @@
     both kinds work with every video backend, including kmsraw and
     MiSTer, and no context is shared with the MAME renderer. Vulkan and
     Direct3D cores aren't supported yet, nor hardware rendering on
-    Windows and macOS.
+    macOS.
 
     Usage:
       groovymame libretro -L genesis_plus_gx -cart sonic.md
