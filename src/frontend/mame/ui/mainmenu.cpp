@@ -17,6 +17,7 @@
 #include "ui/barcode.h"
 #include "ui/cheatopt.h"
 #include "ui/confswitch.h"
+#include "ui/coreopts.h"
 #include "ui/datmenu.h"
 #include "ui/filemngr.h"
 #include "ui/info.h"
@@ -61,6 +62,7 @@ enum : unsigned {
 	AUDIO_EFFECTS,
 	SLIDERS,
 	VIDEO_TARGETS,
+	CORE_OPTIONS,
 	CROSSHAIR,
 	CHEAT,
 	PLUGINS,
@@ -167,6 +169,9 @@ void menu_main::populate()
 		item_append(_("menu-main", "Slider Controls"), 0, (void *)SLIDERS);
 
 	item_append(_("menu-main", "Video Options"), 0, (void *)VIDEO_TARGETS);
+
+	if (machine().runtime_options())
+		item_append(_("menu-main", "Core Options"), 0, (void *)CORE_OPTIONS);
 
 	if (machine().crosshair().get_usage())
 		item_append(_("menu-main", "Crosshair Options"), 0, (void *)CROSSHAIR);
@@ -279,6 +284,10 @@ bool menu_main::handle(event const *ev)
 
 		case VIDEO_TARGETS:
 			menu::stack_push<menu_video_targets>(ui(), target());
+			break;
+
+		case CORE_OPTIONS:
+			menu::stack_push<menu_core_options>(ui(), target());
 			break;
 
 		case CROSSHAIR:

@@ -26,8 +26,11 @@
       -libretropath           search path for the cores
       -libretro_system_directory
                               system directory given to the core (BIOS)
-                              and <core name>.opt core option overrides
-                              (RetroArch format: key = "value")
+      -cfg_directory          core options, in libretro/<core name>.opt
+                              (RetroArch format: key = "value"), written
+                              when they are changed in the Core Options
+                              menu; <system directory>/<core name>.opt is
+                              also read, before it
       -nvram_directory        save directory given to the core, and
                               battery save RAM (libretro/<content>.srm)
 
@@ -197,7 +200,7 @@ constexpr unsigned MAX_PADS = 4;
 //  DRIVER STATE
 //**************************************************************************
 
-class libretro_state : public driver_device
+class libretro_state : public driver_device, public runtime_option_provider
 {
 public:
 	libretro_state(const machine_config &mconfig, device_type type, const char *tag)
@@ -265,8 +268,18 @@ private:
 	void apply_geometry(const retro_game_geometry &geometry);
 	void apply_av_info(const retro_system_av_info &info);
 	void configure_screen(int width, int height);
-	void load_option_overrides();
-	void set_option_default(const char *key, const char *value);
+	// runtime_option_provider implementation
+	virtual const std::vector<category> &runtime_option_categories() const override { return m_option_categories; }
+	virtual const std::vector<option> &runtime_options() const override { return m_options; }
+	virtual void set_runtime_option(std::string_view key, std::string_view value) override;
+
+	option *find_option(std::string_view key);
+	void define_option(const char *key, const char *label, const char *info, const char *category, const retro_core_option_value *values, const char *default_value);
+	void define_variables(const retro_variable *variables);
+	void apply_option_value(option &opt);
+	void parse_options(std::istream &stream);
+	void load_options();
+	void save_options();
 	void load_save_ram();
 	void save_save_ram();
 	void machine_exit();
@@ -302,8 +315,11 @@ private:
 	int                      m_height = 0;
 	double                   m_fps = 60.0;
 
-	std::map<std::string, std::string> m_option_defaults;
-	std::map<std::string, std::string> m_option_overrides;
+	std::vector<category>    m_option_categories;
+	std::vector<option>      m_options;
+	std::map<std::string, std::string> m_option_values;  // chosen by the user, from files or the menu
+	bool                     m_options_updated = false;
+	retro_core_options_update_display_callback_t m_update_display = nullptr;
 
 	std::vector<u8>          m_state;
 };
@@ -404,8 +420,8 @@ void libretro_state::load_content()
 		description.append(" ").append(info.library_version);
 	machine().set_system_description(std::move(description), "libretro core", "");
 
-	// core options are known by now, apply the user overrides
-	load_option_overrides();
+	// core options are known by now, apply the user settings
+	load_options();
 	m_cart->set_extensions(info.valid_extensions);
 
 	if (!m_cart->exists())
@@ -444,35 +460,143 @@ void libretro_state::load_content()
 //  CORE OPTIONS
 //**************************************************************************
 
-void libretro_state::set_option_default(const char *key, const char *value)
+runtime_option_provider::option *libretro_state::find_option(std::string_view key)
 {
-	if (key && value)
-		m_option_defaults[key] = value;
+	auto const found = std::find_if(m_options.begin(), m_options.end(), [key] (const option &opt) { return opt.key == key; });
+	return (found != m_options.end()) ? &*found : nullptr;
 }
 
-// reads <system>/<core name>.opt, in the RetroArch format: key = "value"
-void libretro_state::load_option_overrides()
+// a user value is kept only if the core accepts it
+void libretro_state::apply_option_value(option &opt)
 {
-	std::string const path = m_system_dir + PATH_SEPARATOR + m_library_name + ".opt";
-	std::ifstream file(path);
-	if (!file)
+	auto const found = m_option_values.find(opt.key);
+	bool const valid = (found != m_option_values.end()) && (opt.values.empty() || std::any_of(
+			opt.values.begin(), opt.values.end(),
+			[&found] (const std::pair<std::string, std::string> &value) { return value.first == found->second; }));
+	opt.value = valid ? found->second : opt.default_value;
+}
+
+void libretro_state::define_option(const char *key, const char *label, const char *info, const char *category, const retro_core_option_value *values, const char *default_value)
+{
+	if (!key)
 		return;
 
-	osd_printf_verbose("libretro: reading core options from %s\n", path);
+	option opt;
+	opt.key = key;
+	opt.label = (label && *label) ? label : key;
+	opt.info = info ? info : "";
+	opt.category = category ? category : "";
+	for (int i = 0; values && (i < RETRO_NUM_CORE_OPTION_VALUES_MAX) && values[i].value; i++)
+		opt.values.emplace_back(values[i].value, values[i].label ? values[i].label : values[i].value);
+	opt.default_value = default_value ? default_value : opt.values.empty() ? "" : opt.values.front().first;
+	apply_option_value(opt);
+
+	if (option *const existing = find_option(opt.key))
+		*existing = std::move(opt);
+	else
+		m_options.emplace_back(std::move(opt));
+}
+
+// legacy definitions: "Description; default|other|..."
+void libretro_state::define_variables(const retro_variable *variables)
+{
+	for (auto *var = variables; var && var->key; var++)
+	{
+		std::string const desc = var->value ? var->value : "";
+		size_t const split = desc.find("; ");
+		if (split == std::string::npos)
+			continue;
+
+		std::vector<std::string> names;
+		for (size_t start = split + 2; start <= desc.size(); )
+		{
+			size_t const end = std::min(desc.find('|', start), desc.size());
+			names.emplace_back(desc.substr(start, end - start));
+			start = end + 1;
+		}
+
+		std::vector<retro_core_option_value> values;
+		for (const std::string &name : names)
+			values.push_back({ name.c_str(), nullptr });
+		values.push_back({ nullptr, nullptr });
+		define_option(var->key, desc.substr(0, split).c_str(), nullptr, nullptr, values.data(), nullptr);
+	}
+}
+
+void libretro_state::set_runtime_option(std::string_view key, std::string_view value)
+{
+	option *const opt = find_option(key);
+	if (!opt)
+		return;
+
+	m_option_values[opt->key] = value;
+	apply_option_value(*opt);
+	m_options_updated = true;
+	save_options();
+
+	// let the core show or hide the options depending on this one
+	if (m_update_display)
+		m_update_display();
+}
+
+// RetroArch format: key = "value"
+void libretro_state::parse_options(std::istream &stream)
+{
 	std::string line;
-	while (std::getline(file, line))
+	while (std::getline(stream, line))
 	{
 		size_t const equal = line.find('=');
+		if (equal == std::string::npos)
+			continue;
 		size_t const open = line.find('"', equal);
 		size_t const close = line.rfind('"');
-		if (equal == std::string::npos || open == std::string::npos || close <= open)
+		if (open == std::string::npos || close <= open)
 			continue;
 
 		std::string key = line.substr(0, equal);
 		key.erase(key.find_last_not_of(" \t") + 1);
 		key.erase(0, key.find_first_not_of(" \t"));
-		m_option_overrides[key] = line.substr(open + 1, close - open - 1);
+		m_option_values[key] = line.substr(open + 1, close - open - 1);
 	}
+}
+
+// <system>/<core name>.opt, then <cfg>/libretro/<core name>.opt
+void libretro_state::load_options()
+{
+	std::ifstream legacy(m_system_dir + PATH_SEPARATOR + m_library_name + ".opt");
+	if (legacy)
+		parse_options(legacy);
+
+	emu_file file(machine().options().cfg_directory(), OPEN_FLAG_READ);
+	if (!file.open(std::string("libretro" PATH_SEPARATOR) + m_library_name + ".opt"))
+	{
+		std::string contents(file.size(), '\0');
+		file.read(contents.data(), contents.size());
+		std::istringstream stream(contents);
+		parse_options(stream);
+		osd_printf_verbose("libretro: core options read from %s\n", file.fullpath());
+	}
+
+	for (option &opt : m_options)
+		apply_option_value(opt);
+	m_options_updated = true;
+}
+
+void libretro_state::save_options()
+{
+	emu_file file(machine().options().cfg_directory(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE | OPEN_FLAG_CREATE_PATHS);
+	if (file.open(std::string("libretro" PATH_SEPARATOR) + m_library_name + ".opt"))
+	{
+		osd_printf_error("libretro: can't save the core options in %s\n", machine().options().cfg_directory());
+		return;
+	}
+
+	// options of the core, then values of options it doesn't declare (yet)
+	for (const option &opt : m_options)
+		file.puts(util::string_format("%s = \"%s\"\n", opt.key, opt.value));
+	for (const auto &[key, value] : m_option_values)
+		if (!find_option(key))
+			file.puts(util::string_format("%s = \"%s\"\n", key, value));
 }
 
 
@@ -571,14 +695,8 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		return true;
 
 	case RETRO_ENVIRONMENT_SET_VARIABLES:
-		// "Description; default|other|..."
-		for (auto *var = reinterpret_cast<const retro_variable *>(data); var->key; var++)
-		{
-			std::string const desc = var->value ? var->value : "";
-			size_t const start = desc.find("; ");
-			if (start != std::string::npos)
-				set_option_default(var->key, desc.substr(start + 2, desc.find('|', start) - start - 2).c_str());
-		}
+		m_options.clear();
+		define_variables(reinterpret_cast<const retro_variable *>(data));
 		return true;
 
 	case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
@@ -587,8 +705,10 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		auto *def = (cmd == RETRO_ENVIRONMENT_SET_CORE_OPTIONS)
 				? reinterpret_cast<const retro_core_option_definition *>(data)
 				: reinterpret_cast<const retro_core_options_intl *>(data)->us;
+		m_options.clear();
+		m_option_categories.clear();
 		for ( ; def && def->key; def++)
-			set_option_default(def->key, def->default_value ? def->default_value : def->values[0].value);
+			define_option(def->key, def->desc, def->info, nullptr, def->values, def->default_value);
 		return true;
 	}
 
@@ -598,30 +718,58 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		auto *options = (cmd == RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2)
 				? reinterpret_cast<const retro_core_options_v2 *>(data)
 				: reinterpret_cast<const retro_core_options_v2_intl *>(data)->us;
+		m_options.clear();
+		m_option_categories.clear();
+		for (auto *cat = options ? options->categories : nullptr; cat && cat->key; cat++)
+			m_option_categories.push_back({ cat->key, cat->desc ? cat->desc : cat->key });
 		for (auto *def = options ? options->definitions : nullptr; def && def->key; def++)
-			set_option_default(def->key, def->default_value ? def->default_value : def->values[0].value);
+		{
+			// options shown in a category have shorter descriptions
+			bool const categorized = def->category_key && *def->category_key;
+			define_option(
+					def->key,
+					(categorized && def->desc_categorized) ? def->desc_categorized : def->desc,
+					(categorized && def->info_categorized) ? def->info_categorized : def->info,
+					def->category_key,
+					def->values,
+					def->default_value);
+		}
 		return true;
 	}
 
 	case RETRO_ENVIRONMENT_GET_VARIABLE:
 	{
 		auto *var = reinterpret_cast<retro_variable *>(data);
-		auto found = m_option_overrides.find(var->key);
-		if (found == m_option_overrides.end())
-			found = m_option_defaults.find(var->key);
-		if (found == m_option_defaults.end())
+		if (option *const opt = find_option(var->key))
+		{
+			var->value = opt->value.c_str();
+			return true;
+		}
+		auto const found = m_option_values.find(var->key);
+		if (found == m_option_values.end())
 			return false;
 		var->value = found->second.c_str();
 		return true;
 	}
 
 	case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-		*reinterpret_cast<bool *>(data) = false;
+		*reinterpret_cast<bool *>(data) = std::exchange(m_options_updated, false);
 		return true;
 
 	case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY:
-	case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK:
+	{
+		auto *display = reinterpret_cast<const retro_core_option_display *>(data);
+		if (option *const opt = display ? find_option(display->key) : nullptr)
+			opt->visible = display->visible;
 		return true;
+	}
+
+	case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK:
+	{
+		auto *callback = reinterpret_cast<const retro_core_options_update_display_callback *>(data);
+		m_update_display = callback ? callback->callback : nullptr;
+		return true;
+	}
 
 	// miscellaneous
 	case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
@@ -847,6 +995,7 @@ void libretro_state::machine_start()
 
 	load_content();
 	m_loaded = true;
+	machine().set_runtime_option_provider(this);
 
 	for (unsigned port = 0; port < MAX_PADS; port++)
 		m_api.set_controller_port_device(port, RETRO_DEVICE_JOYPAD);
@@ -891,6 +1040,7 @@ void libretro_state::machine_exit()
 	save_save_ram();
 
 	m_loaded = false;
+	machine().set_runtime_option_provider(nullptr);
 	m_api.unload_game();
 	m_api.deinit();
 	s_instance = nullptr;

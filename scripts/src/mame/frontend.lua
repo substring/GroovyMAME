@@ -103,6 +103,8 @@ files {
 	MAME_DIR .. "src/frontend/mame/ui/cheatopt.h",
 	MAME_DIR .. "src/frontend/mame/ui/confswitch.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/confswitch.h",
+	MAME_DIR .. "src/frontend/mame/ui/coreopts.cpp",
+	MAME_DIR .. "src/frontend/mame/ui/coreopts.h",
 	MAME_DIR .. "src/frontend/mame/ui/custui.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/custui.h",
 	MAME_DIR .. "src/frontend/mame/ui/datmenu.cpp",
