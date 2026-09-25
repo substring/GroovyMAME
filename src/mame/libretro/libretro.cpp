@@ -55,6 +55,10 @@
 
 #include "imagedev/cartrom.h"
 
+#include "corestr.h"
+#include "path.h"
+#include "unzip.h"
+
 #include "modules/lib/osdlib.h"
 
 #include "libretro/libretro.h"
@@ -62,6 +66,7 @@
 
 #include <algorithm>
 #include <cstdarg>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -205,6 +210,17 @@ constexpr unsigned MAX_PADS = 4;
 
 
 //**************************************************************************
+//  HELPERS
+//**************************************************************************
+
+// extensions reported by cores are like "md|bin|zip"
+bool accepts_extension(const char *extensions, const std::string &extension)
+{
+	return extensions && !extension.empty() && (std::string("|") + strmakelower(extensions) + "|").find("|" + extension + "|") != std::string::npos;
+}
+
+
+//**************************************************************************
 //  DRIVER STATE
 //**************************************************************************
 
@@ -275,6 +291,7 @@ private:
 	std::string find_core(const std::string &name) const;
 	void load_core();
 	void load_content();
+	void extract_content(const std::string &archive, const char *extensions, bool to_file);
 	void apply_geometry(const retro_game_geometry &geometry);
 	void apply_av_info(const retro_system_av_info &info);
 	void configure_screen(int width, int height);
@@ -317,6 +334,7 @@ private:
 	std::string              m_save_dir;
 	std::string              m_library_name;
 	std::vector<u8>          m_content;
+	std::string              m_temp_content;           // file extracted from an archive, deleted on exit
 	bool                     m_support_no_game = false;
 
 	retro_pixel_format       m_pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
@@ -451,24 +469,92 @@ void libretro_state::load_content()
 		return;
 	}
 
-	m_content_name = m_cart->basename_noext();
+	// the file given with -cart may be an archive: cores that don't open
+	// archives themselves get the first file of it they accept, like RetroArch
+	// does, in memory or extracted to a temporary file if they need a path
+	std::string const source = machine().options().image_option(m_cart->instance_name()).value();
+	std::string const extension = strmakelower(core_filename_extract_extension(source, true));
+	bool const archive = (extension == "zip") || (extension == "7z");
+	bool const core_opens_archive = info.block_extract || accepts_extension(info.valid_extensions, extension);
+
+	std::string path;
+	if (archive && !core_opens_archive)
+	{
+		extract_content(source, info.valid_extensions, info.need_fullpath);
+		path = info.need_fullpath ? m_temp_content : source + "#" + m_content_name;
+		size_t const dot = m_content_name.find_last_of('.');
+		if (dot != std::string::npos)
+			m_content_name.erase(dot);
+	}
+	else if (archive)
+	{
+		path = source;
+		m_content_name = std::string(core_filename_extract_base(source, true));
+		if (!info.need_fullpath)
+		{
+			std::ifstream file(source, std::ios::binary);
+			m_content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+		}
+	}
+	else
+	{
+		path = m_cart->filename();
+		m_content_name = m_cart->basename_noext();
+		if (!info.need_fullpath)
+		{
+			m_content.resize(m_cart->length());
+			m_cart->fseek(0, SEEK_SET);
+			if (m_cart->fread(m_content.data(), m_content.size()) != m_content.size())
+				throw emu_fatalerror("libretro: can't read %s\n", path);
+		}
+	}
 
 	retro_game_info game = { };
-	game.path = m_cart->filename();
-
-	// cores that don't need a path get the content in memory
+	game.path = path.c_str();
 	if (!info.need_fullpath)
 	{
-		m_content.resize(m_cart->length());
-		m_cart->fseek(0, SEEK_SET);
-		if (m_cart->fread(m_content.data(), m_content.size()) != m_content.size())
-			throw emu_fatalerror("libretro: can't read %s\n", m_cart->filename());
 		game.data = m_content.data();
 		game.size = m_content.size();
 	}
 
 	if (!m_api.load_game(&game))
-		throw emu_fatalerror("libretro: %s failed to load %s\n", m_library_name, m_cart->filename());
+		throw emu_fatalerror("libretro: %s failed to load %s\n", m_library_name, path);
+}
+
+// m_content_name gets the name of the extracted file
+void libretro_state::extract_content(const std::string &archive, const char *extensions, bool to_file)
+{
+	util::archive_file::ptr file;
+	std::error_condition const err = (strmakelower(core_filename_extract_extension(archive, true)) == "7z") ? util::archive_file::open_7z(archive, file) : util::archive_file::open_zip(archive, file);
+	if (err || !file)
+		throw emu_fatalerror("libretro: can't open %s\n", archive);
+
+	int found = -1;
+	for (int i = file->first_file(); i >= 0 && found < 0; i = file->next_file())
+	{
+		if (!file->current_is_directory() && (!extensions || !*extensions || accepts_extension(extensions, strmakelower(core_filename_extract_extension(file->current_name(), true)))))
+			found = i;
+	}
+	if (found < 0)
+		throw emu_fatalerror("libretro: no file %s accepts in %s\n", m_library_name, archive);
+
+	m_content_name = std::string(core_filename_extract_base(file->current_name()));
+	m_content.resize(file->current_uncompressed_length());
+	if (file->decompress(m_content.data(), m_content.size()))
+		throw emu_fatalerror("libretro: can't extract %s from %s\n", m_content_name, archive);
+
+	if (to_file)
+	{
+		std::error_code ec;
+		std::filesystem::path const dir = std::filesystem::temp_directory_path(ec) / "groovymame-libretro";
+		std::filesystem::create_directories(dir, ec);
+		m_temp_content = (dir / m_content_name).string();
+		std::ofstream out(m_temp_content, std::ios::binary);
+		out.write(reinterpret_cast<const char *>(m_content.data()), m_content.size());
+		if (!out)
+			throw emu_fatalerror("libretro: can't write %s\n", m_temp_content);
+		m_content.clear();
+	}
 }
 
 
@@ -1122,6 +1208,12 @@ void libretro_state::machine_exit()
 	}
 	m_gl.reset();
 	s_instance = nullptr;
+
+	if (!m_temp_content.empty())
+	{
+		std::error_code ec;
+		std::filesystem::remove(m_temp_content, ec);
+	}
 }
 
 
