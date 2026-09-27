@@ -15,6 +15,8 @@
 
 #include "ui/menu.h"
 
+#include "runtimeopt.h"
+
 #include <string>
 #include <vector>
 
@@ -26,6 +28,9 @@ class menu_core_options : public menu
 public:
 	menu_core_options(mame_ui_manager &mui, render_target &target, std::string &&category = std::string());
 	virtual ~menu_core_options() override;
+
+	// the running system, if it hosts an emulator with options
+	static runtime_option_provider *provider(running_machine &machine) { return dynamic_cast<runtime_option_provider *>(&machine.root_device()); }
 
 protected:
 	virtual void recompute_metrics(uint32_t width, uint32_t height, float aspect) override;

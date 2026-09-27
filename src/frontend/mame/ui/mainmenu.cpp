@@ -170,7 +170,7 @@ void menu_main::populate()
 
 	item_append(_("menu-main", "Video Options"), 0, (void *)VIDEO_TARGETS);
 
-	if (machine().runtime_options())
+	if (menu_core_options::provider(machine()))
 		item_append(_("menu-main", "Core Options"), 0, (void *)CORE_OPTIONS);
 
 	if (machine().crosshair().get_usage())

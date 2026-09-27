@@ -47,9 +47,11 @@ menu_core_options::menu_core_options(mame_ui_manager &mui, render_target &target
 	, m_category(std::move(category))
 {
 	std::string heading = _("Core Options");
-	if (runtime_option_provider const *const provider = machine().runtime_options())
+	if (runtime_option_provider const *const owner = provider(machine()))
 	{
-		for (const auto &cat : provider->runtime_option_categories())
+		if (m_category.empty())
+			heading = util::string_format(_("Core Options - %1$s"), owner->runtime_option_owner());
+		for (const auto &cat : owner->runtime_option_categories())
 			if (cat.key == m_category)
 				heading = cat.label;
 	}
@@ -81,15 +83,15 @@ void menu_core_options::populate()
 	m_categories.clear();
 	m_keys.clear();
 
-	runtime_option_provider const *const provider = machine().runtime_options();
-	if (!provider)
+	runtime_option_provider const *const owner = provider(machine());
+	if (!owner)
 	{
 		item_append(_("No options"), FLAG_DISABLE, nullptr);
 		return;
 	}
 
-	auto const &categories = provider->runtime_option_categories();
-	auto const &options = provider->runtime_options();
+	auto const &categories = owner->runtime_option_categories();
+	auto const &options = owner->runtime_options();
 	auto const is_category = [&categories] (std::string const &key)
 	{
 		return std::any_of(categories.begin(), categories.end(), [&key] (auto const &cat) { return cat.key == key; });
@@ -157,8 +159,8 @@ void menu_core_options::custom_render(uint32_t flags, void *selectedref, float t
 	if (ref < ITEM_OPTION_FIRST || ref >= ITEM_CATEGORY_FIRST || (ref - ITEM_OPTION_FIRST) >= m_keys.size())
 		return;
 
-	runtime_option_provider const *const provider = machine().runtime_options();
-	option const *const opt = provider ? find_option(*provider, m_keys[ref - ITEM_OPTION_FIRST]) : nullptr;
+	runtime_option_provider const *const owner = provider(machine());
+	option const *const opt = owner ? find_option(*owner, m_keys[ref - ITEM_OPTION_FIRST]) : nullptr;
 	if (!opt || opt->info.empty())
 		return;
 
@@ -180,8 +182,8 @@ bool menu_core_options::handle(event const *ev)
 	if (!ev || !ev->itemref)
 		return false;
 
-	runtime_option_provider *const provider = machine().runtime_options();
-	if (!provider)
+	runtime_option_provider *const owner = provider(machine());
+	if (!owner)
 		return false;
 
 	uintptr_t const ref = reinterpret_cast<uintptr_t>(ev->itemref);
@@ -197,7 +199,7 @@ bool menu_core_options::handle(event const *ev)
 	}
 	else if (ref >= ITEM_OPTION_FIRST && (ref - ITEM_OPTION_FIRST) < m_keys.size())
 	{
-		option const *const opt = find_option(*provider, m_keys[ref - ITEM_OPTION_FIRST]);
+		option const *const opt = find_option(*owner, m_keys[ref - ITEM_OPTION_FIRST]);
 		if (!opt || opt->values.empty())
 			return false;
 
@@ -222,7 +224,7 @@ bool menu_core_options::handle(event const *ev)
 		}
 
 		// changing an option may show or hide others
-		provider->set_runtime_option(opt->key, value);
+		owner->set_runtime_option(opt->key, value);
 		reset(reset_options::REMEMBER_REF);
 	}
 

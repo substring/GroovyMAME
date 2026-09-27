@@ -23,6 +23,7 @@
 #include "softlist.h"
 #include "speaker.h"
 #include "osdepend.h"
+#include "runtimeopt.h"
 
 #include "util/unicode.h"
 
@@ -468,18 +469,14 @@ std::string machine_info::game_info_string() const
 		point = utf8_from_wstring(std::wstring_view(&s, 1));
 	}
 
-	// print description, manufacturer, and CPU:
-	if (m_machine.system_description_overridden())
-		util::stream_format(buf, _("%1$s\n%2$s\nSource file: %3$s\n\nCPU:\n"),
-				m_machine.system_description(),
-				*m_machine.system_year() ? util::string_format("%s %s", m_machine.system_year(), m_machine.system_manufacturer()) : std::string(m_machine.system_manufacturer()),
-				info_xml_creator::format_sourcefile(m_machine.system().type.source()));
-	else
-		util::stream_format(buf, _("%1$s\n%2$s %3$s\nSource file: %4$s\n\nCPU:\n"),
-				system_list::instance().systems()[driver_list::find(m_machine.system().name)].description,
-				m_machine.system().year,
-				m_machine.system().manufacturer,
-				info_xml_creator::format_sourcefile(m_machine.system().type.source()));
+	// print description, manufacturer, and CPU: a system hosting an external
+	// emulator describes what it runs
+	runtime_option_provider const *const hosted = dynamic_cast<runtime_option_provider const *>(&m_machine.root_device());
+	util::stream_format(buf, _("%1$s\n%2$s %3$s\nSource file: %4$s\n\nCPU:\n"),
+			hosted ? hosted->runtime_option_owner() : system_list::instance().systems()[driver_list::find(m_machine.system().name)].description,
+			m_machine.system().year,
+			m_machine.system().manufacturer,
+			info_xml_creator::format_sourcefile(m_machine.system().type.source()));
 
 	// loop over all CPUs
 	execute_interface_enumerator execiter(m_machine.root_device());

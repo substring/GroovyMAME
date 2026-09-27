@@ -50,6 +50,7 @@
 
 #include "emuopts.h"
 #include "fileio.h"
+#include "runtimeopt.h"
 #include "screen.h"
 #include "speaker.h"
 
@@ -296,6 +297,7 @@ private:
 	void apply_av_info(const retro_system_av_info &info);
 	void configure_screen(int width, int height);
 	// runtime_option_provider implementation
+	virtual std::string runtime_option_owner() const override { return m_core_description; }
 	virtual const std::vector<category> &runtime_option_categories() const override { return m_option_categories; }
 	virtual const std::vector<option> &runtime_options() const override { return m_options; }
 	virtual void set_runtime_option(std::string_view key, std::string_view value) override;
@@ -333,6 +335,7 @@ private:
 	std::string              m_system_dir;
 	std::string              m_save_dir;
 	std::string              m_library_name;
+	std::string              m_core_description;       // name and version
 	std::vector<u8>          m_content;
 	std::string              m_temp_content;           // file extracted from an archive, deleted on exit
 	bool                     m_support_no_game = false;
@@ -448,11 +451,10 @@ void libretro_state::load_content()
 	m_library_name = info.library_name ? info.library_name : "libretro";
 	osd_printf_info("libretro: %s %s\n", m_library_name, info.library_version ? info.library_version : "");
 
-	// show the core instead of this driver in the system information
-	std::string description = m_library_name;
+	// shown in the system information and the Core Options menu
+	m_core_description = m_library_name;
 	if (info.library_version && *info.library_version)
-		description.append(" ").append(info.library_version);
-	machine().set_system_description(std::move(description), "libretro core", "");
+		m_core_description.append(" ").append(info.library_version);
 
 	// core options are known by now, apply the user settings
 	load_options();
@@ -628,7 +630,7 @@ void libretro_state::define_variables(const retro_variable *variables)
 void libretro_state::set_runtime_option(std::string_view key, std::string_view value)
 {
 	option *const opt = find_option(key);
-	if (!opt)
+	if (!opt || !m_loaded)
 		return;
 
 	m_option_values[opt->key] = value;
@@ -1134,7 +1136,6 @@ void libretro_state::machine_start()
 
 	load_content();
 	m_loaded = true;
-	machine().set_runtime_option_provider(this);
 
 	for (unsigned port = 0; port < MAX_PADS; port++)
 		m_api.set_controller_port_device(port, RETRO_DEVICE_JOYPAD);
@@ -1198,7 +1199,6 @@ void libretro_state::machine_exit()
 	save_save_ram();
 
 	m_loaded = false;
-	machine().set_runtime_option_provider(nullptr);
 	{
 		libretro_gl_scope scope(m_gl.get());
 		m_api.unload_game();
@@ -1283,4 +1283,4 @@ ROM_END
 
 
 //    YEAR  NAME      PARENT  COMPAT  MACHINE   INPUT     CLASS           INIT        COMPANY     FULLNAME            FLAGS
-CONS( 2024, libretro, 0,      0,      libretro, libretro, libretro_state, empty_init, "libretro", "libretro core",    MACHINE_SUPPORTS_SAVE )
+CONS( 2026, libretro, 0,      0,      libretro, libretro, libretro_state, empty_init, "libretro core", "libretro core", MACHINE_SUPPORTS_SAVE )

@@ -18,10 +18,6 @@
 #define MAME_EMU_MACHINE_H
 
 #include <functional>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
 
 #include <ctime>
 
@@ -95,39 +91,6 @@ public:
 
 
 
-// ======================> runtime_option_provider
-
-// options of an external emulator hosted by the running system (e.g. the
-// options of a libretro core), shown and changed in the user interface
-class runtime_option_provider
-{
-public:
-	struct category
-	{
-		std::string key;
-		std::string label;
-	};
-
-	struct option
-	{
-		std::string key;
-		std::string label;
-		std::string info;                                          // help text
-		std::string category;                                      // key of a category, or empty
-		std::vector<std::pair<std::string, std::string> > values;  // value and label
-		std::string default_value;
-		std::string value;                                         // current value
-		bool visible = true;
-	};
-
-	virtual ~runtime_option_provider() = default;
-
-	virtual const std::vector<category> &runtime_option_categories() const = 0;
-	virtual const std::vector<option> &runtime_options() const = 0;
-	virtual void set_runtime_option(std::string_view key, std::string_view value) = 0;
-};
-
-
 // ======================> running_machine
 
 typedef delegate<void ()> machine_notify_delegate;
@@ -153,18 +116,6 @@ public:
 	const machine_config &config() const { return m_config; }
 	device_t &root_device() const { return m_config.root_device(); }
 	const game_driver &system() const { return m_system; }
-
-	// description of the running system: drivers hosting an external emulator
-	// (e.g. a libretro core) can replace the static one once it is known
-	void set_system_description(std::string description, std::string manufacturer, std::string year) { m_description = std::move(description); m_manufacturer = std::move(manufacturer); m_year = std::move(year); }
-	bool system_description_overridden() const { return !m_description.empty(); }
-	const char *system_description() const { return m_description.empty() ? m_system.type.fullname() : m_description.c_str(); }
-	const char *system_manufacturer() const { return m_description.empty() ? m_system.manufacturer : m_manufacturer.c_str(); }
-	const char *system_year() const { return m_description.empty() ? m_system.year : m_year.c_str(); }
-
-	// options of an external emulator hosted by the running system, if any
-	void set_runtime_option_provider(runtime_option_provider *provider) { m_runtime_option_provider = provider; }
-	runtime_option_provider *runtime_options() const { return m_runtime_option_provider; }
 	osd_interface &osd() const;
 	machine_manager &manager() const { return m_manager; }
 	device_scheduler &scheduler() { return m_scheduler; }
@@ -315,10 +266,6 @@ private:
 	// internal state
 	const machine_config &  m_config;               // reference to the constructed machine_config
 	const game_driver &     m_system;               // reference to the definition of the game machine
-	std::string             m_description;          // run time replacements for the system description
-	std::string             m_manufacturer;
-	std::string             m_year;
-	runtime_option_provider *m_runtime_option_provider = nullptr;
 	machine_manager &       m_manager;              // reference to machine manager system
 	// managers
 	std::unique_ptr<render_manager> m_render;          // internal data from render.cpp
