@@ -279,8 +279,8 @@ private:
 	static void video_callback(const void *data, unsigned width, unsigned height, size_t pitch) { s_instance->video_refresh(data, width, height, pitch); }
 	static uintptr_t hw_framebuffer_callback() { return s_instance->m_gl ? s_instance->m_gl->framebuffer() : 0; }
 	static retro_proc_address_t hw_proc_address_callback(const char *symbol) { return s_instance->m_gl ? s_instance->m_gl->proc_address(symbol) : nullptr; }
-	static void audio_callback(int16_t left, int16_t right) { int16_t const frame[2] = { left, right }; s_instance->m_sound->push(frame, 1); }
-	static size_t audio_batch_callback(const int16_t *data, size_t frames) { s_instance->m_sound->push(data, frames); return frames; }
+	static void audio_callback(int16_t left, int16_t right) { int16_t const frame[2] = { left, right }; s_instance->push_audio(frame, 1); }
+	static size_t audio_batch_callback(const int16_t *data, size_t frames) { s_instance->push_audio(data, frames); return frames; }
 	static void input_poll_callback() { }
 	static int16_t input_state_callback(unsigned port, unsigned device, unsigned index, unsigned id) { return s_instance->input_state(port, device, index, id); }
 	static void log_callback(retro_log_level level, const char *fmt, ...) ATTR_PRINTF(2, 3);
@@ -315,6 +315,7 @@ private:
 	void state_presave();
 	void state_postload();
 
+	void push_audio(const int16_t *data, size_t frames) { m_audio_frames += frames; m_sound->push(data, frames); }
 	void vblank(int state);
 	u32 screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 
@@ -351,6 +352,13 @@ private:
 	int                      m_width = 0;
 	int                      m_height = 0;
 	double                   m_fps = 60.0;
+
+	// frame pacing on the emulated time, measured by the audio produced
+	double                   m_audio_per_frame = 0.0;  // audio frames per emulated frame
+	double                   m_audio_ahead = 0.0;      // produced beyond the frames shown
+	u64                      m_audio_frames = 0;
+	unsigned                 m_paced_frames = 0;
+	unsigned                 m_skipped_runs = 0;
 
 	std::vector<category>    m_option_categories;
 	std::vector<option>      m_options;
@@ -964,6 +972,8 @@ void libretro_state::apply_av_info(const retro_system_av_info &info)
 {
 	if (info.timing.fps > 0.0)
 		m_fps = info.timing.fps;
+	m_audio_per_frame = (info.timing.sample_rate > 0.0) ? info.timing.sample_rate / m_fps : 0.0;
+	m_audio_ahead = 0.0;
 	m_sound->set_rate(u32(info.timing.sample_rate + 0.5));
 	apply_geometry(info.geometry);
 	osd_printf_verbose("libretro: %dx%d %.6f Hz, audio %.1f Hz\n", m_width, m_height, m_fps, info.timing.sample_rate);
@@ -1026,11 +1036,37 @@ void libretro_state::video_refresh(const void *data, unsigned width, unsigned he
 
 void libretro_state::vblank(int state)
 {
-	if (state && m_loaded)
+	if (!state || !m_loaded)
+		return;
+
+	if (++m_paced_frames == 600)
+	{
+		if (m_skipped_runs)
+			osd_printf_verbose("libretro: retro_run skipped %u times over %u frames, the core ran ahead\n", m_skipped_runs, m_paced_frames);
+		m_paced_frames = m_skipped_runs = 0;
+	}
+
+	// some cores run more than one frame of the emulated system per retro_run,
+	// like Flycast when a game renders at 30 fps: RetroArch slows them down by
+	// blocking on audio, here retro_run is skipped while the audio they
+	// produced shows they're ahead, and the previous frame stays on screen
+	if (m_audio_per_frame > 0.0 && m_audio_ahead >= m_audio_per_frame * 0.75)
+	{
+		m_audio_ahead -= m_audio_per_frame;
+		m_skipped_runs++;
+		return;
+	}
+
+	u64 const before = m_audio_frames;
 	{
 		libretro_gl_scope scope(m_gl.get());
 		m_api.run();
 	}
+
+	// silent frames tell nothing about time
+	u64 const produced = m_audio_frames - before;
+	if (m_audio_per_frame > 0.0 && produced)
+		m_audio_ahead = std::clamp(m_audio_ahead + double(produced) - m_audio_per_frame, -m_audio_per_frame, 4.0 * m_audio_per_frame);
 }
 
 u32 libretro_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
@@ -1182,6 +1218,7 @@ void libretro_state::state_postload()
 {
 	libretro_gl_scope scope(m_gl.get());
 	m_api.unserialize(m_state.data(), m_state.size());
+	m_audio_ahead = 0.0;
 }
 
 void libretro_state::machine_reset()
