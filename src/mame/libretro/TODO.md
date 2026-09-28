@@ -70,7 +70,6 @@ Priorities: P1 first, P3 last.
   device with `device_memory_interface`: debugger memory viewer and
   watchpoints, Lua access, base for cheats and RetroAchievements. The
   debugger can't step into the core's CPUs; debug cores with gdb.
-- Run-ahead (replaying frames through the core states).
 - Core cheats (`retro_cheat_set`: Game Genie, Action Replay codes).
 - RetroAchievements.
 - Subsystems (`retro_load_game_special`: Super Game Boy, Sufami Turbo...).
@@ -82,6 +81,14 @@ Priorities: P1 first, P3 last.
 - Automated test of the 16 buttons of the 4 RetroPads.
 - Window title still "libretro core [libretro]" (built by the OSD before the
   core is loaded).
+
+## Deliberately ignored for now
+
+- **Run-ahead** (emulating frames ahead and rolling back through the core
+  states to hide the game's internal input lag): it changes the original
+  behavior of the game, costs 2 to 3 times the emulation per frame, and
+  needs cores fully deterministic in their states. GroovyMAME's frame delay
+  already reduces the latency without changing the game.
 
 ## Out of scope
 
