@@ -74,6 +74,15 @@
 #include <map>
 #include <sstream>
 
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <intrin.h>
+#include <immintrin.h>
+#else
+#include <cpuid.h>
+#endif
+#endif
+
 
 //**************************************************************************
 //  SOUND DEVICE
@@ -777,22 +786,58 @@ retro_time_t libretro_state::perf_time_usec_callback()
 	return retro_time_t(ticks / per_second * 1000000 + ticks % per_second * 1000000 / per_second);
 }
 
+// read with the cpuid instruction: __builtin_cpu_supports needs a runtime
+// library that clang-cl doesn't link
 uint64_t libretro_state::perf_cpu_features_callback()
 {
 	uint64_t features = 0;
-#if (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__i386__))
-	__builtin_cpu_init();
-	if (__builtin_cpu_supports("cmov"))   features |= RETRO_SIMD_CMOV;
-	if (__builtin_cpu_supports("mmx"))    features |= RETRO_SIMD_MMX;
-	if (__builtin_cpu_supports("sse"))    features |= RETRO_SIMD_SSE;
-	if (__builtin_cpu_supports("sse2"))   features |= RETRO_SIMD_SSE2;
-	if (__builtin_cpu_supports("sse3"))   features |= RETRO_SIMD_SSE3;
-	if (__builtin_cpu_supports("ssse3"))  features |= RETRO_SIMD_SSSE3;
-	if (__builtin_cpu_supports("sse4.1")) features |= RETRO_SIMD_SSE4;
-	if (__builtin_cpu_supports("sse4.2")) features |= RETRO_SIMD_SSE42;
-	if (__builtin_cpu_supports("popcnt")) features |= RETRO_SIMD_POPCNT;
-	if (__builtin_cpu_supports("avx"))    features |= RETRO_SIMD_AVX;
-	if (__builtin_cpu_supports("avx2"))   features |= RETRO_SIMD_AVX2;
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+	auto const cpuid = [] (unsigned leaf, unsigned subleaf, unsigned regs[4])
+	{
+#if defined(_MSC_VER) && !defined(__clang__)
+		__cpuidex(reinterpret_cast<int *>(regs), leaf, subleaf);
+#else
+		__cpuid_count(leaf, subleaf, regs[0], regs[1], regs[2], regs[3]);
+#endif
+	};
+
+	unsigned regs[4];
+	cpuid(0, 0, regs);
+	unsigned const max_leaf = regs[0];
+	cpuid(1, 0, regs);
+	unsigned const ecx = regs[2], edx = regs[3];
+	if (edx & (1U << 15)) features |= RETRO_SIMD_CMOV;
+	if (edx & (1U << 23)) features |= RETRO_SIMD_MMX;
+	if (edx & (1U << 25)) features |= RETRO_SIMD_SSE | RETRO_SIMD_MMXEXT;
+	if (edx & (1U << 26)) features |= RETRO_SIMD_SSE2;
+	if (ecx & (1U << 0))  features |= RETRO_SIMD_SSE3;
+	if (ecx & (1U << 9))  features |= RETRO_SIMD_SSSE3;
+	if (ecx & (1U << 19)) features |= RETRO_SIMD_SSE4;
+	if (ecx & (1U << 20)) features |= RETRO_SIMD_SSE42;
+	if (ecx & (1U << 22)) features |= RETRO_SIMD_MOVBE;
+	if (ecx & (1U << 23)) features |= RETRO_SIMD_POPCNT;
+	if (ecx & (1U << 25)) features |= RETRO_SIMD_AES;
+
+	// AVX also needs the OS to save the YMM registers
+	if ((ecx & (1U << 27)) && (ecx & (1U << 28)))
+	{
+#if defined(_MSC_VER) && !defined(__clang__)
+		uint64_t const xcr0 = _xgetbv(0);
+#else
+		unsigned eax, edx0;
+		__asm__ volatile ("xgetbv" : "=a" (eax), "=d" (edx0) : "c" (0));
+		uint64_t const xcr0 = eax | (uint64_t(edx0) << 32);
+#endif
+		if ((xcr0 & 6) == 6)
+		{
+			features |= RETRO_SIMD_AVX;
+			if (max_leaf >= 7)
+			{
+				cpuid(7, 0, regs);
+				if (regs[1] & (1U << 5)) features |= RETRO_SIMD_AVX2;
+			}
+		}
+	}
 #elif defined(__aarch64__) || defined(_M_ARM64)
 	features |= RETRO_SIMD_NEON | RETRO_SIMD_ASIMD;
 #endif
