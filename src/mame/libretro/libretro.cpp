@@ -286,6 +286,13 @@ private:
 	static void input_poll_callback() { }
 	static int16_t input_state_callback(unsigned port, unsigned device, unsigned index, unsigned id) { return s_instance->input_state(port, device, index, id); }
 	static void log_callback(retro_log_level level, const char *fmt, ...) ATTR_PRINTF(2, 3);
+	static retro_time_t perf_time_usec_callback();
+	static uint64_t perf_cpu_features_callback();
+	static retro_perf_tick_t perf_counter_callback() { return osd_ticks(); }
+	static void perf_register_callback(retro_perf_counter *counter);
+	static void perf_start_callback(retro_perf_counter *counter) { counter->call_cnt++; counter->start = osd_ticks(); }
+	static void perf_stop_callback(retro_perf_counter *counter) { counter->total += osd_ticks() - counter->start; }
+	static void perf_log_callback() { s_instance->log_perf_counters(); }
 
 	bool environment(unsigned cmd, void *data);
 	void video_refresh(const void *data, unsigned width, unsigned height, size_t pitch);
@@ -367,6 +374,10 @@ private:
 	// time between two retro_run, for cores that ask for it
 	retro_frame_time_callback m_frame_time = { };
 	attotime                 m_last_run_time = attotime::never;
+
+	// performance counters of the core, logged with -verbose on exit
+	std::vector<retro_perf_counter *> m_perf_counters;
+	void log_perf_counters();
 
 	std::vector<category>    m_option_categories;
 	std::vector<option>      m_options;
@@ -759,6 +770,54 @@ void libretro_state::log_callback(retro_log_level level, const char *fmt, ...)
 	}
 }
 
+retro_time_t libretro_state::perf_time_usec_callback()
+{
+	osd_ticks_t const ticks = osd_ticks();
+	osd_ticks_t const per_second = osd_ticks_per_second();
+	return retro_time_t(ticks / per_second * 1000000 + ticks % per_second * 1000000 / per_second);
+}
+
+uint64_t libretro_state::perf_cpu_features_callback()
+{
+	uint64_t features = 0;
+#if (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__i386__))
+	__builtin_cpu_init();
+	if (__builtin_cpu_supports("cmov"))   features |= RETRO_SIMD_CMOV;
+	if (__builtin_cpu_supports("mmx"))    features |= RETRO_SIMD_MMX;
+	if (__builtin_cpu_supports("sse"))    features |= RETRO_SIMD_SSE;
+	if (__builtin_cpu_supports("sse2"))   features |= RETRO_SIMD_SSE2;
+	if (__builtin_cpu_supports("sse3"))   features |= RETRO_SIMD_SSE3;
+	if (__builtin_cpu_supports("ssse3"))  features |= RETRO_SIMD_SSSE3;
+	if (__builtin_cpu_supports("sse4.1")) features |= RETRO_SIMD_SSE4;
+	if (__builtin_cpu_supports("sse4.2")) features |= RETRO_SIMD_SSE42;
+	if (__builtin_cpu_supports("popcnt")) features |= RETRO_SIMD_POPCNT;
+	if (__builtin_cpu_supports("avx"))    features |= RETRO_SIMD_AVX;
+	if (__builtin_cpu_supports("avx2"))   features |= RETRO_SIMD_AVX2;
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	features |= RETRO_SIMD_NEON | RETRO_SIMD_ASIMD;
+#endif
+	return features;
+}
+
+void libretro_state::perf_register_callback(retro_perf_counter *counter)
+{
+	if (!counter->registered)
+	{
+		s_instance->m_perf_counters.push_back(counter);
+		counter->registered = true;
+	}
+}
+
+void libretro_state::log_perf_counters()
+{
+	for (const retro_perf_counter *counter : m_perf_counters)
+	{
+		if (counter->call_cnt)
+			osd_printf_verbose("libretro: perf %s: %llu calls, %.3f us average\n", counter->ident, (unsigned long long)counter->call_cnt,
+					double(counter->total) * 1000000.0 / double(osd_ticks_per_second()) / double(counter->call_cnt));
+	}
+}
+
 bool libretro_state::environment(unsigned cmd, void *data)
 {
 	switch (cmd)
@@ -972,6 +1031,19 @@ bool libretro_state::environment(unsigned cmd, void *data)
 	case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
 		reinterpret_cast<retro_log_callback *>(data)->log = log_callback;
 		return true;
+
+	case RETRO_ENVIRONMENT_GET_PERF_INTERFACE:
+	{
+		auto &perf = *reinterpret_cast<retro_perf_callback *>(data);
+		perf.get_time_usec = perf_time_usec_callback;
+		perf.get_cpu_features = perf_cpu_features_callback;
+		perf.get_perf_counter = perf_counter_callback;
+		perf.perf_register = perf_register_callback;
+		perf.perf_start = perf_start_callback;
+		perf.perf_stop = perf_stop_callback;
+		perf.perf_log = perf_log_callback;
+		return true;
+	}
 
 	case RETRO_ENVIRONMENT_GET_USERNAME:
 		// no user name: the core uses its default one
@@ -1359,6 +1431,7 @@ void libretro_state::machine_exit()
 {
 	save_memory(RETRO_MEMORY_SAVE_RAM, ".srm");
 	save_memory(RETRO_MEMORY_RTC, ".rtc");
+	log_perf_counters();
 
 	m_loaded = false;
 	{
@@ -1369,6 +1442,7 @@ void libretro_state::machine_exit()
 		m_api.deinit();
 	}
 	m_gl.reset();
+	m_perf_counters.clear();  // owned by the core
 	s_instance = nullptr;
 
 	if (!m_temp_content.empty())
