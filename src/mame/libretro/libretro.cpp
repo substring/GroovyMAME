@@ -657,10 +657,6 @@ void libretro_state::parse_options(std::istream &stream)
 	std::string line;
 	while (std::getline(stream, line))
 	{
-		// files written by earlier versions start with a UTF-8 BOM
-		if (line.starts_with("\xef\xbb\xbf"))
-			line.erase(0, 3);
-
 		size_t const equal = line.find('=');
 		if (equal == std::string::npos)
 			continue;
