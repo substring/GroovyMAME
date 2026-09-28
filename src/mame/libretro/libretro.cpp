@@ -819,6 +819,10 @@ bool libretro_state::environment(unsigned cmd, void *data)
 	case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
 		return true;
 
+	case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
+		*reinterpret_cast<unsigned *>(data) = MAX_PADS;
+		return true;
+
 	// core options
 	case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
 		*reinterpret_cast<unsigned *>(data) = 2;
