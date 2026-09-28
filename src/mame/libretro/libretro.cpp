@@ -362,6 +362,10 @@ private:
 	unsigned                 m_paced_frames = 0;
 	unsigned                 m_skipped_runs = 0;
 
+	// time between two retro_run, for cores that ask for it
+	retro_frame_time_callback m_frame_time = { };
+	attotime                 m_last_run_time = attotime::never;
+
 	std::vector<category>    m_option_categories;
 	std::vector<option>      m_options;
 	std::map<std::string, std::string> m_option_values;  // chosen by the user, from files or the menu
@@ -997,6 +1001,10 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		return true;
 	}
 
+	case RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK:
+		m_frame_time = *reinterpret_cast<const retro_frame_time_callback *>(data);
+		return true;
+
 	case RETRO_ENVIRONMENT_SHUTDOWN:
 		machine().schedule_exit();
 		return true;
@@ -1139,6 +1147,17 @@ void libretro_state::vblank(int state)
 	u64 const before = m_audio_frames;
 	{
 		libretro_gl_scope scope(m_gl.get());
+		if (m_frame_time.callback)
+		{
+			// emulated time, so it follows MAME's speed and save states; the
+			// reference when it doesn't move forward (start, state loaded)
+			attotime const now = machine().time();
+			retro_usec_t usec = m_frame_time.reference;
+			if (!m_last_run_time.is_never() && now > m_last_run_time)
+				usec = retro_usec_t((now - m_last_run_time).as_double() * 1e6 + 0.5);
+			m_last_run_time = now;
+			m_frame_time.callback(usec);
+		}
 		m_api.run();
 	}
 
