@@ -76,6 +76,10 @@ Priorities: P1 first, P3 last.
 - Study RetroArch's netplay. Goes with a real `RETRO_ENVIRONMENT_GET_USERNAME`
   answer (it returns no name today): the player name comes from a new option
   in `mame.ini`.
+  To stay compatible with RetroArch, refuse
+  `RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK` during a netplay session as
+  RetroArch does (the core then runs without it on every peer), so netplay
+  must be known before the core is loaded.
 
 ## Not prioritized
 
