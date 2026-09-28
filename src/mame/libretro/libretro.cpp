@@ -502,9 +502,10 @@ void libretro_state::load_content()
 		path = info.need_fullpath ? m_temp_content : source + "#" + m_content_name;
 		m_info_archive = source;
 		m_info_file = m_content_name;
-		size_t const dot = m_content_name.find_last_of('.');
-		if (dot != std::string::npos)
-			m_content_name.erase(dot);
+
+		// named after the archive, not the file inside, like RetroArch does:
+		// pack.zip gives pack.srm, so save files can be shared with it
+		m_content_name = std::string(core_filename_extract_base(source, true));
 	}
 	else if (archive)
 	{
