@@ -828,6 +828,11 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		*reinterpret_cast<unsigned *>(data) = MAX_PADS;
 		return true;
 
+	case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
+		// what input_state answers to, keep in sync with it
+		*reinterpret_cast<uint64_t *>(data) = (1U << RETRO_DEVICE_JOYPAD) | (1U << RETRO_DEVICE_ANALOG);
+		return true;
+
 	// core options
 	case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
 		*reinterpret_cast<unsigned *>(data) = 2;
