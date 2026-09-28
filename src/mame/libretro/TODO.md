@@ -73,7 +73,9 @@ Priorities: P1 first, P3 last.
 - Core cheats (`retro_cheat_set`: Game Genie, Action Replay codes).
 - RetroAchievements.
 - Subsystems (`retro_load_game_special`: Super Game Boy, Sufami Turbo...).
-- Study RetroArch's netplay.
+- Study RetroArch's netplay. Goes with a real `RETRO_ENVIRONMENT_GET_USERNAME`
+  answer (it returns no name today): the player name comes from a new option
+  in `mame.ini`.
 
 ## Not prioritized
 
