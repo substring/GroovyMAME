@@ -310,7 +310,8 @@ private:
 	std::string find_core(const std::string &name) const;
 	void load_core();
 	void load_content();
-	void extract_content(const std::string &archive, const char *extensions, bool to_file);
+	bool extract_content(const std::string &archive, const char *extensions, bool need_fullpath);
+	bool content_needs_fullpath(bool need_fullpath, const std::string &extension) const;
 	void apply_geometry(const retro_game_geometry &geometry);
 	void apply_av_info(const retro_system_av_info &info);
 	void configure_screen(int width, int height);
@@ -360,6 +361,7 @@ private:
 	std::string              m_info_path, m_info_archive, m_info_file, m_info_dir, m_info_ext;
 	retro_game_info_ext      m_game_info_ext = { };    // for GET_GAME_INFO_EXT, when there's content
 	bool                     m_support_no_game = false;
+	std::map<std::string, bool> m_fullpath_overrides;  // need_fullpath per extension, from the core
 
 	retro_pixel_format       m_pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
 	bitmap_rgb32             m_frame;
@@ -516,10 +518,11 @@ void libretro_state::load_content()
 	bool const core_opens_archive = info.block_extract || accepts_extension(info.valid_extensions, extension);
 
 	std::string path;
+	bool need_fullpath = content_needs_fullpath(info.need_fullpath, extension);
 	if (archive && !core_opens_archive)
 	{
-		extract_content(source, info.valid_extensions, info.need_fullpath);
-		path = info.need_fullpath ? m_temp_content : source + "#" + m_content_name;
+		need_fullpath = extract_content(source, info.valid_extensions, info.need_fullpath);
+		path = need_fullpath ? m_temp_content : source + "#" + m_content_name;
 		m_info_archive = source;
 		m_info_file = m_content_name;
 
@@ -531,7 +534,7 @@ void libretro_state::load_content()
 	{
 		path = source;
 		m_content_name = std::string(core_filename_extract_base(source, true));
-		if (!info.need_fullpath)
+		if (!need_fullpath)
 		{
 			std::ifstream file(source, std::ios::binary);
 			m_content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
@@ -541,7 +544,7 @@ void libretro_state::load_content()
 	{
 		path = m_cart->filename();
 		m_content_name = m_cart->basename_noext();
-		if (!info.need_fullpath)
+		if (!need_fullpath)
 		{
 			m_content.resize(m_cart->length());
 			m_cart->fseek(0, SEEK_SET);
@@ -552,7 +555,7 @@ void libretro_state::load_content()
 
 	retro_game_info game = { };
 	game.path = path.c_str();
-	if (!info.need_fullpath)
+	if (!need_fullpath)
 	{
 		game.data = m_content.data();
 		game.size = m_content.size();
@@ -576,8 +579,16 @@ void libretro_state::load_content()
 		throw emu_fatalerror("libretro: %s failed to load %s\n", m_library_name, path);
 }
 
-// m_content_name gets the name of the extracted file
-void libretro_state::extract_content(const std::string &archive, const char *extensions, bool to_file)
+// the core may ask for a path or the data depending on the extension
+bool libretro_state::content_needs_fullpath(bool need_fullpath, const std::string &extension) const
+{
+	auto const found = m_fullpath_overrides.find(extension);
+	return (found != m_fullpath_overrides.end()) ? found->second : need_fullpath;
+}
+
+// m_content_name gets the name of the extracted file, returns true when it's
+// extracted to a temporary file for a core that needs a path
+bool libretro_state::extract_content(const std::string &archive, const char *extensions, bool need_fullpath)
 {
 	util::archive_file::ptr file;
 	std::error_condition const err = (strmakelower(core_filename_extract_extension(archive, true)) == "7z") ? util::archive_file::open_7z(archive, file) : util::archive_file::open_zip(archive, file);
@@ -594,6 +605,7 @@ void libretro_state::extract_content(const std::string &archive, const char *ext
 		throw emu_fatalerror("libretro: no file %s accepts in %s\n", m_library_name, archive);
 
 	m_content_name = std::string(core_filename_extract_base(file->current_name()));
+	bool const to_file = content_needs_fullpath(need_fullpath, strmakelower(core_filename_extract_extension(m_content_name, true)));
 	m_content.resize(file->current_uncompressed_length());
 	if (file->decompress(m_content.data(), m_content.size()))
 		throw emu_fatalerror("libretro: can't extract %s from %s\n", m_content_name, archive);
@@ -610,6 +622,7 @@ void libretro_state::extract_content(const std::string &archive, const char *ext
 			throw emu_fatalerror("libretro: can't write %s\n", m_temp_content);
 		m_content.clear();
 	}
+	return to_file;
 }
 
 
@@ -946,6 +959,22 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		*reinterpret_cast<const char **>(data) = m_save_dir.c_str();
 		return true;
 
+	case RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE:
+		// the data stays in memory until the core is unloaded, which also
+		// covers persistent_data; the first override of an extension wins
+		for (auto *entry = reinterpret_cast<const retro_system_content_info_override *>(data); entry && entry->extensions; entry++)
+		{
+			std::string const extensions = strmakelower(entry->extensions);
+			for (size_t start = 0; start <= extensions.size(); )
+			{
+				size_t const end = std::min(extensions.find('|', start), extensions.size());
+				if (end > start)
+					m_fullpath_overrides.emplace(extensions.substr(start, end - start), entry->need_fullpath);
+				start = end + 1;
+			}
+		}
+		return true;
+
 	case RETRO_ENVIRONMENT_GET_GAME_INFO_EXT:
 		if (!m_game_info_ext.full_path)
 			return false;
@@ -1158,7 +1187,6 @@ bool libretro_state::environment(unsigned cmd, void *data)
 	case RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO:
 	case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:
 	case RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS:
-	case RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE:
 	case RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS:
 		return true;
 
