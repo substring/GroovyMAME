@@ -207,7 +207,7 @@ namespace {
 //  CONSTANTS
 //**************************************************************************
 
-constexpr unsigned MAX_PADS = 4;
+constexpr unsigned MAX_PADS = MAX_PLAYERS;
 
 
 //**************************************************************************
@@ -1300,7 +1300,7 @@ void libretro_state::machine_exit()
 //**************************************************************************
 
 #define RETROPAD(n) \
-	PORT_START("PAD" #n) \
+	PORT_START(util::string_format("PAD%u", n).c_str()) \
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_B,      IP_ACTIVE_HIGH, IPT_BUTTON1)        PORT_NAME("%p B")  PORT_PLAYER(n) \
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_Y,      IP_ACTIVE_HIGH, IPT_BUTTON3)        PORT_NAME("%p Y")  PORT_PLAYER(n) \
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_SELECT, IP_ACTIVE_HIGH, IPT_SELECT)                            PORT_PLAYER(n) \
@@ -1317,16 +1317,16 @@ void libretro_state::machine_exit()
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_R2,     IP_ACTIVE_HIGH, IPT_BUTTON8)        PORT_NAME("%p R2") PORT_PLAYER(n) \
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_L3,     IP_ACTIVE_HIGH, IPT_BUTTON9)        PORT_NAME("%p L3") PORT_PLAYER(n) \
 	PORT_BIT(1U << RETRO_DEVICE_ID_JOYPAD_R3,     IP_ACTIVE_HIGH, IPT_BUTTON10)       PORT_NAME("%p R3") PORT_PLAYER(n) \
-	PORT_START("STICKX" #n) \
+	PORT_START(util::string_format("STICKX%u", n).c_str()) \
 	PORT_BIT(0xffff, 0x8000, IPT_AD_STICK_X) PORT_MINMAX(0, 0xffff) PORT_SENSITIVITY(100) PORT_KEYDELTA(0x800) PORT_PLAYER(n) \
-	PORT_START("STICKY" #n) \
+	PORT_START(util::string_format("STICKY%u", n).c_str()) \
 	PORT_BIT(0xffff, 0x8000, IPT_AD_STICK_Y) PORT_MINMAX(0, 0xffff) PORT_SENSITIVITY(100) PORT_KEYDELTA(0x800) PORT_PLAYER(n)
 
 INPUT_PORTS_START( libretro )
-	RETROPAD(1)
-	RETROPAD(2)
-	RETROPAD(3)
-	RETROPAD(4)
+	for (unsigned n = 1; n <= MAX_PADS; n++)
+	{
+		RETROPAD(n)
+	}
 INPUT_PORTS_END
 
 
