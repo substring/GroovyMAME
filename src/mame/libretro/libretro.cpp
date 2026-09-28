@@ -341,6 +341,8 @@ private:
 	std::string              m_core_description;       // name and version
 	std::vector<u8>          m_content;
 	std::string              m_temp_content;           // file extracted from an archive, deleted on exit
+	std::string              m_info_path, m_info_archive, m_info_file, m_info_dir, m_info_ext;
+	retro_game_info_ext      m_game_info_ext = { };    // for GET_GAME_INFO_EXT, when there's content
 	bool                     m_support_no_game = false;
 
 	retro_pixel_format       m_pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
@@ -498,6 +500,8 @@ void libretro_state::load_content()
 	{
 		extract_content(source, info.valid_extensions, info.need_fullpath);
 		path = info.need_fullpath ? m_temp_content : source + "#" + m_content_name;
+		m_info_archive = source;
+		m_info_file = m_content_name;
 		size_t const dot = m_content_name.find_last_of('.');
 		if (dot != std::string::npos)
 			m_content_name.erase(dot);
@@ -532,6 +536,20 @@ void libretro_state::load_content()
 		game.data = m_content.data();
 		game.size = m_content.size();
 	}
+
+	// the same, with the archive details
+	m_info_path = path;
+	m_info_dir = std::filesystem::path(m_info_archive.empty() ? path : m_info_archive).parent_path().string();
+	m_info_ext = strmakelower(core_filename_extract_extension(m_info_file.empty() ? path : m_info_file, true));
+	m_game_info_ext.full_path = m_info_path.c_str();
+	m_game_info_ext.archive_path = m_info_archive.empty() ? nullptr : m_info_archive.c_str();
+	m_game_info_ext.archive_file = m_info_file.empty() ? nullptr : m_info_file.c_str();
+	m_game_info_ext.dir = m_info_dir.c_str();
+	m_game_info_ext.name = m_content_name.c_str();
+	m_game_info_ext.ext = m_info_ext.c_str();
+	m_game_info_ext.data = game.data;
+	m_game_info_ext.size = game.size;
+	m_game_info_ext.file_in_archive = !m_info_archive.empty();
 
 	if (!m_api.load_game(&game))
 		throw emu_fatalerror("libretro: %s failed to load %s\n", m_library_name, path);
@@ -821,6 +839,12 @@ bool libretro_state::environment(unsigned cmd, void *data)
 
 	case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
 		*reinterpret_cast<const char **>(data) = m_save_dir.c_str();
+		return true;
+
+	case RETRO_ENVIRONMENT_GET_GAME_INFO_EXT:
+		if (!m_game_info_ext.full_path)
+			return false;
+		*reinterpret_cast<const retro_game_info_ext **>(data) = &m_game_info_ext;
 		return true;
 
 	case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
