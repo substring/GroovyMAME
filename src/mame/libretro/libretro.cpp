@@ -946,6 +946,11 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		reinterpret_cast<retro_log_callback *>(data)->log = log_callback;
 		return true;
 
+	case RETRO_ENVIRONMENT_GET_USERNAME:
+		// no user name: the core uses its default one
+		*reinterpret_cast<const char **>(data) = nullptr;
+		return true;
+
 	case RETRO_ENVIRONMENT_GET_LANGUAGE:
 		*reinterpret_cast<unsigned *>(data) = RETRO_LANGUAGE_ENGLISH;
 		return true;
