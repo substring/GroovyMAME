@@ -108,6 +108,9 @@ microphone, camera, sensors, location, MIDI.
 - OpenGL hardware rendered cores on Linux (EGL) and Windows (WGL), read back
   in the same frame, working with every video backend.
 - Content in zip and 7z archives.
+- Small environment calls: `GET_INPUT_MAX_USERS` (as many RetroPads as MAME
+  has players), `GET_INPUT_DEVICE_CAPABILITIES`, `GET_JIT_CAPABLE`,
+  `SET_VARIABLE`, `GET_USERNAME` (no name yet, see netplay).
 - Frame pacing on the emulated time for cores running more than one frame
   per `retro_run`.
 - Checked with MiSTer output (`-video mister`) against a fake GroovyMiSTer
