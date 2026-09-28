@@ -38,8 +38,9 @@
                               when they are changed in the Core Options
                               menu; <system directory>/<core name>.opt is
                               also read, before it
-      -nvram_directory        save directory given to the core, and
-                              battery save RAM (libretro/<content>.srm)
+      -nvram_directory        save directory given to the core, battery
+                              save RAM (libretro/<content>.srm) and real
+                              time clock (libretro/<content>.rtc)
 
     The screen is reconfigured to the geometry and refresh rate reported
     by the core. Inputs are 4 RetroPads with a left analog stick.
@@ -310,8 +311,8 @@ private:
 	void parse_options(std::istream &stream);
 	void load_options();
 	void save_options();
-	void load_save_ram();
-	void save_save_ram();
+	void load_memory(unsigned id, const char *extension);
+	void save_memory(unsigned id, const char *extension);
 	void machine_exit();
 	void state_presave();
 	void state_postload();
@@ -1193,30 +1194,30 @@ int16_t libretro_state::input_state(unsigned port, unsigned device, unsigned ind
 
 
 //**************************************************************************
-//  BATTERY SAVE RAM
+//  BATTERY SAVE RAM AND CLOCK
 //**************************************************************************
 
-void libretro_state::load_save_ram()
+void libretro_state::load_memory(unsigned id, const char *extension)
 {
-	void *const data = m_api.get_memory_data(RETRO_MEMORY_SAVE_RAM);
-	size_t const size = m_api.get_memory_size(RETRO_MEMORY_SAVE_RAM);
+	void *const data = m_api.get_memory_data(id);
+	size_t const size = m_api.get_memory_size(id);
 	if (!data || !size)
 		return;
 
 	emu_file file(machine().options().nvram_directory(), OPEN_FLAG_READ);
-	if (!file.open(std::string("libretro" PATH_SEPARATOR) + m_content_name + ".srm"))
+	if (!file.open(std::string("libretro" PATH_SEPARATOR) + m_content_name + extension))
 		file.read(data, size);
 }
 
-void libretro_state::save_save_ram()
+void libretro_state::save_memory(unsigned id, const char *extension)
 {
-	void *const data = m_api.get_memory_data(RETRO_MEMORY_SAVE_RAM);
-	size_t const size = m_api.get_memory_size(RETRO_MEMORY_SAVE_RAM);
+	void *const data = m_api.get_memory_data(id);
+	size_t const size = m_api.get_memory_size(id);
 	if (!data || !size)
 		return;
 
 	emu_file file(machine().options().nvram_directory(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE | OPEN_FLAG_CREATE_PATHS);
-	if (!file.open(std::string("libretro" PATH_SEPARATOR) + m_content_name + ".srm"))
+	if (!file.open(std::string("libretro" PATH_SEPARATOR) + m_content_name + extension))
 		file.write(data, size);
 }
 
@@ -1271,7 +1272,8 @@ void libretro_state::machine_start()
 			m_hw.context_reset();
 	}
 
-	load_save_ram();
+	load_memory(RETRO_MEMORY_SAVE_RAM, ".srm");
+	load_memory(RETRO_MEMORY_RTC, ".rtc");
 	machine().add_notifier(MACHINE_NOTIFY_EXIT, machine_notify_delegate(&libretro_state::machine_exit, this));
 
 	// MAME save states wrap the core's own serialization
@@ -1311,7 +1313,8 @@ void libretro_state::machine_reset()
 
 void libretro_state::machine_exit()
 {
-	save_save_ram();
+	save_memory(RETRO_MEMORY_SAVE_RAM, ".srm");
+	save_memory(RETRO_MEMORY_RTC, ".rtc");
 
 	m_loaded = false;
 	{
