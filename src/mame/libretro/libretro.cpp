@@ -975,6 +975,27 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		return true;
 	}
 
+	case RETRO_ENVIRONMENT_GET_THROTTLE_STATE:
+	{
+		// the speed MAME aims at, from -speed and the throttle rate
+		auto &state = *reinterpret_cast<retro_throttle_state *>(data);
+		video_manager &video = machine().video();
+		float const speed = (video.speed_factor() ? video.speed_factor() / 1000.0f : 1.0f) * video.throttle_rate();
+		state.rate = 0;
+		if (machine().paused())
+			state.mode = RETRO_THROTTLE_FRAME_STEPPING;
+		else if (video.fastforward())
+			state.mode = RETRO_THROTTLE_FAST_FORWARD;
+		else if (!video.throttled())
+			state.mode = RETRO_THROTTLE_UNBLOCKED;
+		else
+		{
+			state.mode = (speed > 1.0f) ? RETRO_THROTTLE_FAST_FORWARD : (speed < 1.0f) ? RETRO_THROTTLE_SLOW_MOTION : RETRO_THROTTLE_NONE;
+			state.rate = m_fps * speed;
+		}
+		return true;
+	}
+
 	case RETRO_ENVIRONMENT_SHUTDOWN:
 		machine().schedule_exit();
 		return true;
