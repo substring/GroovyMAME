@@ -53,6 +53,7 @@
 #include "runtimeopt.h"
 #include "screen.h"
 #include "speaker.h"
+#include "ui/uimain.h"
 
 #include "imagedev/cartrom.h"
 
@@ -958,6 +959,21 @@ bool libretro_state::environment(unsigned cmd, void *data)
 	case RETRO_ENVIRONMENT_SET_MESSAGE:
 		machine().popmessage("%s", reinterpret_cast<const retro_message *>(data)->msg);
 		return true;
+
+	case RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION:
+		*reinterpret_cast<unsigned *>(data) = 1;
+		return true;
+
+	case RETRO_ENVIRONMENT_SET_MESSAGE_EXT:
+	{
+		// every type is shown as a plain notification, as the spec allows
+		auto const *msg = reinterpret_cast<const retro_message_ext *>(data);
+		if (msg->target != RETRO_MESSAGE_TARGET_OSD)
+			log_callback(msg->level, "%s\n", msg->msg);
+		if (msg->target != RETRO_MESSAGE_TARGET_LOG)
+			machine().ui().popup_time(std::max(1U, (msg->duration + 999) / 1000), "%s", msg->msg);
+		return true;
+	}
 
 	case RETRO_ENVIRONMENT_SHUTDOWN:
 		machine().schedule_exit();
