@@ -896,6 +896,27 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		return true;
 	}
 
+	case RETRO_ENVIRONMENT_SET_VARIABLE:
+	{
+		// the core changes one of its own options, NULL asks if supported
+		auto *var = reinterpret_cast<const retro_variable *>(data);
+		if (!var)
+			return true;
+
+		option *const opt = (var->key && var->value && *var->value) ? find_option(var->key) : nullptr;
+		if (!opt || (!opt->values.empty() && std::none_of(opt->values.begin(), opt->values.end(), [var] (const auto &v) { return v.first == var->value; })))
+			return false;
+
+		m_option_values[opt->key] = var->value;
+		apply_option_value(*opt);
+		m_options_updated = true;
+
+		// the file name is only known once the core is identified
+		if (!m_library_name.empty())
+			save_options();
+		return true;
+	}
+
 	case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
 		*reinterpret_cast<bool *>(data) = std::exchange(m_options_updated, false);
 		return true;
