@@ -797,6 +797,11 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		*reinterpret_cast<int *>(data) = 3;
 		return true;
 
+	case RETRO_ENVIRONMENT_GET_JIT_CAPABLE:
+		// dynamic recompilers can run on the desktop systems MAME supports
+		*reinterpret_cast<bool *>(data) = true;
+		return true;
+
 	case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
 		*reinterpret_cast<bool *>(data) = false;
 		return true;
