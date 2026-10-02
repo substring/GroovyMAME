@@ -202,6 +202,10 @@ public:
 	virtual bool is_reset_on_load() const noexcept override { return true; }
 	virtual const char *file_extensions() const noexcept override { return m_extensions.c_str(); }
 
+	// MAME skips hashing the whole image for CHDs only: the hash is for
+	// software lists, and reading a 2.7 GB PS2 ISO took 13 seconds
+	virtual bool image_is_chd_type() const noexcept override { return true; }
+
 protected:
 	virtual void device_start() override ATTR_COLD { }
 
