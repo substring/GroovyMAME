@@ -1509,9 +1509,11 @@ void libretro_state::machine_exit()
 	m_loaded = false;
 	{
 		libretro_gl_scope scope(m_gl.get());
-		m_api.unload_game();
+		// the context goes before the game, like RetroArch: LRPS2 pauses its
+		// CPU thread in context_destroy and waits forever once it's stopped
 		if (m_gl && m_hw.context_destroy)
 			m_hw.context_destroy();
+		m_api.unload_game();
 		m_api.deinit();
 	}
 	m_gl.reset();
