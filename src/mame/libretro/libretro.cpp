@@ -795,6 +795,9 @@ void libretro_state::set_disc_option(std::string_view key, std::string_view valu
 	if (!has_discs())
 		return;
 
+	// LRPS2 runs pending GPU work of its own while it parks its CPU thread
+	// for the change, on the context that is current: it must be its own
+	libretro_gl_scope scope(m_gl.get());
 	if (key == DISC_TRAY)
 	{
 		m_disk.set_eject_state(value == "open");
