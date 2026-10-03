@@ -87,6 +87,14 @@ Priorities: P1 first, P3 last.
 - Automated test of the 16 buttons of the 4 RetroPads.
 - Window title still "libretro core [libretro]" (built by the OSD before the
   core is loaded).
+- **TAS (tool-assisted speedrun) use**: frame advance, save states, Lua and
+  `-record`/`-playback` already work. Missing: rerecording (load a state
+  while recording and go on from there; MAME's `.inp` can't, so a movie
+  format of the driver, ideally RetroArch's `.bsv`: start state + input per
+  `retro_run`), the core memory for RAM search/watch (see P3), lag frame
+  counter (no `input_poll` during a `retro_run`), the frame pacing state in
+  save states for strict determinism, and `SET_SERIALIZATION_QUIRKS` to warn
+  about non deterministic cores.
 
 ## Deliberately ignored for now
 
