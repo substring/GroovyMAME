@@ -765,7 +765,8 @@ const std::vector<runtime_option_provider::option> &libretro_state::runtime_opti
 		tray.value = m_disk.get_eject_state() ? "open" : "closed";
 		m_menu_options.push_back(std::move(tray));
 
-		// labelled by the core, or with the file name of the image
+		// labelled by the core, or with the file name of the image; some
+		// cores label with the full path (LRPS2), only its file name is shown
 		option disc;
 		disc.key = DISC_INDEX;
 		disc.label = "Disc";
@@ -777,7 +778,7 @@ const std::vector<runtime_option_provider::option> &libretro_state::runtime_opti
 			char text[256] = "";
 			std::string label = util::string_format("Disc %u", i + 1);
 			if (m_disk.get_image_label && m_disk.get_image_label(i, text, sizeof(text)) && *text)
-				label.append(": ").append(text);
+				label.append(": ").append(core_filename_extract_base(text));
 			else if (m_disk.get_image_path && m_disk.get_image_path(i, text, sizeof(text)) && *text)
 				label.append(": ").append(core_filename_extract_base(text, true));
 			disc.values.emplace_back(std::to_string(i), std::move(label));
