@@ -68,7 +68,9 @@
 #include "libretro_gl.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cstdarg>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -229,6 +231,11 @@ constexpr unsigned MAX_PADS = MAX_PLAYERS;
 //  HELPERS
 //**************************************************************************
 
+// keys of the disc control entries of the Core Options menu
+char const DISC_CATEGORY[] = "groovymame_disc";
+char const DISC_TRAY[] = "groovymame_disc_tray";
+char const DISC_INDEX[] = "groovymame_disc_index";
+
 // extensions reported by cores are like "md|bin|zip"
 bool accepts_extension(const char *extensions, const std::string &extension)
 {
@@ -321,9 +328,11 @@ private:
 	void configure_screen(int width, int height);
 	// runtime_option_provider implementation
 	virtual std::string runtime_option_owner() const override { return m_core_description; }
-	virtual const std::vector<category> &runtime_option_categories() const override { return m_option_categories; }
-	virtual const std::vector<option> &runtime_options() const override { return m_options; }
+	virtual const std::vector<category> &runtime_option_categories() const override;
+	virtual const std::vector<option> &runtime_options() const override;
 	virtual void set_runtime_option(std::string_view key, std::string_view value) override;
+	bool has_discs() const;
+	void set_disc_option(std::string_view key, std::string_view value);
 
 	option *find_option(std::string_view key);
 	void define_option(const char *key, const char *label, const char *info, const char *category, const retro_core_option_value *values, const char *default_value);
@@ -399,6 +408,12 @@ private:
 	std::map<std::string, std::string> m_option_values;  // chosen by the user, from files or the menu
 	bool                     m_options_updated = false;
 	retro_core_options_update_display_callback_t m_update_display = nullptr;
+
+	// disc control: shown as a category of the Core Options menu, read from
+	// the core each time so it follows save states and the core's own changes
+	retro_disk_control_ext_callback m_disk = { };
+	mutable std::vector<category> m_menu_categories;
+	mutable std::vector<option> m_menu_options;
 
 	std::vector<u8>          m_state;
 };
@@ -699,6 +714,9 @@ void libretro_state::define_variables(const retro_variable *variables)
 
 void libretro_state::set_runtime_option(std::string_view key, std::string_view value)
 {
+	if (key == DISC_TRAY || key == DISC_INDEX)
+		return set_disc_option(key, value);
+
 	option *const opt = find_option(key);
 	if (!opt || !m_loaded)
 		return;
@@ -712,6 +730,90 @@ void libretro_state::set_runtime_option(std::string_view key, std::string_view v
 	if (m_update_display)
 		m_update_display();
 }
+
+
+//**************************************************************************
+//  DISC CONTROL
+//**************************************************************************
+
+bool libretro_state::has_discs() const
+{
+	return m_loaded && m_disk.get_num_images && m_disk.get_image_index && m_disk.set_image_index && m_disk.get_eject_state && m_disk.set_eject_state && (m_disk.get_num_images() > 0);
+}
+
+const std::vector<runtime_option_provider::category> &libretro_state::runtime_option_categories() const
+{
+	m_menu_categories.clear();
+	if (has_discs())
+		m_menu_categories.push_back({ DISC_CATEGORY, "Disc Control" });
+	m_menu_categories.insert(m_menu_categories.end(), m_option_categories.begin(), m_option_categories.end());
+	return m_menu_categories;
+}
+
+const std::vector<runtime_option_provider::option> &libretro_state::runtime_options() const
+{
+	m_menu_options.clear();
+	if (has_discs())
+	{
+		option tray;
+		tray.key = DISC_TRAY;
+		tray.label = "Disc Tray";
+		tray.info = "Open the tray to change the disc the way the game expects it";
+		tray.category = DISC_CATEGORY;
+		tray.values = { { "closed", "Closed" }, { "open", "Open" } };
+		tray.default_value = "closed";
+		tray.value = m_disk.get_eject_state() ? "open" : "closed";
+		m_menu_options.push_back(std::move(tray));
+
+		// labelled by the core, or with the file name of the image
+		option disc;
+		disc.key = DISC_INDEX;
+		disc.label = "Disc";
+		disc.info = "With the tray closed, it's opened and closed around the change";
+		disc.category = DISC_CATEGORY;
+		unsigned const count = m_disk.get_num_images();
+		for (unsigned i = 0; i < count; i++)
+		{
+			char text[256] = "";
+			std::string label = util::string_format("Disc %u", i + 1);
+			if (m_disk.get_image_label && m_disk.get_image_label(i, text, sizeof(text)) && *text)
+				label.append(": ").append(text);
+			else if (m_disk.get_image_path && m_disk.get_image_path(i, text, sizeof(text)) && *text)
+				label.append(": ").append(core_filename_extract_base(text, true));
+			disc.values.emplace_back(std::to_string(i), std::move(label));
+		}
+		disc.default_value = "0";
+		disc.value = std::to_string(m_disk.get_image_index());
+		m_menu_options.push_back(std::move(disc));
+	}
+	m_menu_options.insert(m_menu_options.end(), m_options.begin(), m_options.end());
+	return m_menu_options;
+}
+
+void libretro_state::set_disc_option(std::string_view key, std::string_view value)
+{
+	if (!has_discs())
+		return;
+
+	if (key == DISC_TRAY)
+	{
+		m_disk.set_eject_state(value == "open");
+	}
+	else
+	{
+		unsigned index = 0;
+		if (std::from_chars(value.data(), value.data() + value.size(), index).ec != std::errc() || index >= m_disk.get_num_images())
+			return;
+
+		bool const closed = !m_disk.get_eject_state();
+		if (closed)
+			m_disk.set_eject_state(true);
+		m_disk.set_image_index(index);
+		if (closed)
+			m_disk.set_eject_state(false);
+	}
+}
+
 
 // RetroArch format: key = "value"
 void libretro_state::parse_options(std::istream &stream)
@@ -1003,6 +1105,21 @@ bool libretro_state::environment(unsigned cmd, void *data)
 		return true;
 
 	// core options
+	// disc control, the ext interface is a superset of the first one
+	case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
+		*reinterpret_cast<unsigned *>(data) = 1;
+		return true;
+
+	case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
+		m_disk = { };
+		if (data)
+			std::memcpy(&m_disk, data, sizeof(retro_disk_control_callback));
+		return true;
+
+	case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
+		m_disk = data ? *reinterpret_cast<const retro_disk_control_ext_callback *>(data) : retro_disk_control_ext_callback{ };
+		return true;
+
 	case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
 		*reinterpret_cast<unsigned *>(data) = 2;
 		return true;
